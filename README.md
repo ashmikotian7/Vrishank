@@ -1,3 +1,3 @@
-# Welcome to your Lovable project
+# Sentiment Archive
 
 TODO: Document your project here
