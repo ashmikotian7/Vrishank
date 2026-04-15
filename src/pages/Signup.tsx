@@ -11,6 +11,7 @@ import { toast } from "sonner";
 const Signup = () => {
   const { signup } = useAuth();
   const navigate = useNavigate();
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -32,99 +33,169 @@ const Signup = () => {
     e.preventDefault();
     if (!validate()) return;
     signup(name, email, password);
-    toast.success("Account created! Welcome aboard 🎉");
+    toast.success("Account created! Welcome 🎉");
     navigate("/dashboard");
   };
 
-  const strength = password.length === 0 ? 0 : password.length < 6 ? 1 : password.length < 10 ? 2 : 3;
-  const strengthColors = ["", "bg-destructive", "bg-capsule-warm", "bg-capsule-success"];
-  const strengthLabels = ["", "Weak", "Fair", "Strong"];
-
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative">
-      <div className="absolute inset-0 gradient-warm" />
-      <div className="absolute bottom-1/4 left-1/4 w-64 h-64 rounded-full bg-accent/10 blur-3xl" />
+    <div className="min-h-screen flex flex-col md:flex-row">
 
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md relative z-10">
-        <div className="glass rounded-3xl p-8 shadow-glow">
-          <div className="text-center mb-8">
-            <Link to="/" className="inline-flex items-center gap-2 font-display font-bold text-2xl mb-2">
-              <div className="w-8 h-8 rounded-lg gradient-hero flex items-center justify-center">
-                <span className="text-primary-foreground text-sm">⏳</span>
-              </div>
-              <span className="text-gradient">TimeCapsule</span>
-            </Link>
-            <p className="text-muted-foreground text-sm">Create your account to start preserving memories.</p>
+      {/* LEFT SIDE - IMAGE */}
+      <div className="relative md:w-1/2 h-64 md:h-auto">
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: "url('/time-capsule.jpg')" }}
+        />
+
+        {/* overlay for readability */}
+        <div className="absolute inset-0 bg-gradient-to-br from-black/40 via-black/20 to-transparent" />
+
+        {/* optional branding text */}
+        <div className="relative z-10 flex items-center justify-center h-full text-white px-6 text-center">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold mb-3">
+              Welcome to TimeCapsule ⏳
+            </h1>
+            <p className="text-sm md:text-base text-gray-200">
+              Preserve your memories for the future
+            </p>
           </div>
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input id="name" placeholder="John Doe" className="pl-10 h-11 rounded-xl" value={name} onChange={e => { setName(e.target.value); setErrors(p => ({ ...p, name: "" })); }} />
-              </div>
-              {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input id="email" type="email" placeholder="you@example.com" className="pl-10 h-11 rounded-xl" value={email} onChange={e => { setEmail(e.target.value); setErrors(p => ({ ...p, email: "" })); }} />
-              </div>
-              {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input id="password" type={showPass ? "text" : "password"} placeholder="••••••••" className="pl-10 pr-10 h-11 rounded-xl" value={password} onChange={e => { setPassword(e.target.value); setErrors(p => ({ ...p, password: "" })); }} />
-                <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" onClick={() => setShowPass(!showPass)}>
-                  {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-              {password && (
-                <div className="flex items-center gap-2 mt-1">
-                  <div className="flex gap-1 flex-1">
-                    {[1, 2, 3].map(i => (
-                      <div key={i} className={`h-1.5 flex-1 rounded-full ${i <= strength ? strengthColors[strength] : "bg-muted"}`} />
-                    ))}
-                  </div>
-                  <span className="text-xs text-muted-foreground">{strengthLabels[strength]}</span>
-                </div>
-              )}
-              {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
-            </div>
-
-            <Button type="submit" className="w-full h-11 rounded-xl shadow-glow font-semibold">
-              Create Account
-            </Button>
-          </form>
-
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
-              <div className="relative flex justify-center text-xs"><span className="bg-card px-3 text-muted-foreground">Or continue with</span></div>
-            </div>
-            <div className="grid grid-cols-2 gap-3 mt-4">
-              <Button variant="outline" className="h-11 rounded-xl gap-2">
-                <svg className="w-4 h-4" viewBox="0 0 24 24"><path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-                Google
-              </Button>
-              <Button variant="outline" className="h-11 rounded-xl gap-2">
-                <Github className="w-4 h-4" /> GitHub
-              </Button>
-            </div>
-          </div>
-
-          <p className="text-center text-sm text-muted-foreground mt-6">
-            Already have an account?{" "}
-            <Link to="/login" className="text-primary font-medium hover:underline">Sign in</Link>
-          </p>
         </div>
-      </motion.div>
+      </div>
+
+      {/* RIGHT SIDE - FORM */}
+      <div className="flex items-center justify-center md:w-1/2 p-6 sm:p-10 bg-gradient-to-br from-white to-purple-50 dark:from-black dark:to-black">
+
+        <motion.div
+          initial={{ opacity: 0, x: 40 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="w-full max-w-md"
+        >
+
+          {/* CARD */}
+          <div className="p-[1px] rounded-3xl bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400">
+
+            <div className="rounded-3xl p-6 sm:p-8 bg-white/80 dark:bg-white/5 backdrop-blur-xl border border-white/30 shadow-xl">
+
+              {/* HEADER */}
+              <div className="text-center mb-8">
+                <div className="flex justify-center mb-3">
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center shadow-md">
+                    <span className="text-white text-sm">⏳</span>
+                  </div>
+                </div>
+
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
+                  Create Account
+                </h2>
+
+                <p className="text-gray-600 dark:text-gray-300 text-sm mt-1">
+                  Join TimeCapsule today
+                </p>
+              </div>
+
+              {/* FORM */}
+              <form onSubmit={handleSubmit} className="space-y-4">
+
+                {/* Name */}
+                <div>
+                  <Label>Full Name</Label>
+                  <div className="relative mt-1">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                    <Input
+                      placeholder="John Doe"
+                      className="pl-10 h-11 rounded-xl bg-white/70 dark:bg-white/10"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                    />
+                  </div>
+                  {errors.name && <p className="text-xs text-red-400 mt-1">{errors.name}</p>}
+                </div>
+
+                {/* Email */}
+                <div>
+                  <Label>Email</Label>
+                  <div className="relative mt-1">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                    <Input
+                      type="email"
+                      placeholder="you@example.com"
+                      className="pl-10 h-11 rounded-xl bg-white/70 dark:bg-white/10"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                  </div>
+                  {errors.email && <p className="text-xs text-red-400 mt-1">{errors.email}</p>}
+                </div>
+
+                {/* Password */}
+                <div>
+                  <Label>Password</Label>
+                  <div className="relative mt-1">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                    <Input
+                      type={showPass ? "text" : "password"}
+                      placeholder="••••••••"
+                      className="pl-10 pr-10 h-11 rounded-xl bg-white/70 dark:bg-white/10"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+                      onClick={() => setShowPass(!showPass)}
+                    >
+                      {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                  {errors.password && <p className="text-xs text-red-400 mt-1">{errors.password}</p>}
+                </div>
+
+                {/* BUTTON */}
+                <Button
+                  type="submit"
+                  className="w-full h-11 rounded-xl text-white bg-gradient-to-r from-purple-500 to-pink-500 hover:scale-105 transition"
+                >
+                  Sign Up
+                </Button>
+              </form>
+
+              {/* SOCIAL */}
+              <div className="mt-6">
+                <div className="flex items-center">
+                  <div className="flex-1 h-px bg-gray-300" />
+                  <span className="px-3 text-xs text-gray-500">
+                    Or continue with
+                  </span>
+                  <div className="flex-1 h-px bg-gray-300" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mt-4">
+                  <Button variant="outline" className="h-11 rounded-xl">
+                    Google
+                  </Button>
+
+                  <Button variant="outline" className="h-11 rounded-xl gap-2">
+                    <Github size={16} /> GitHub
+                  </Button>
+                </div>
+              </div>
+
+              {/* LOGIN */}
+              <p className="text-center text-sm text-gray-600 dark:text-gray-300 mt-6">
+                Already have an account?{" "}
+                <Link
+                  to="/login"
+                  className="font-medium text-purple-500 hover:underline"
+                >
+                  Sign in
+                </Link>
+              </p>
+
+            </div>
+          </div>
+        </motion.div>
+      </div>
     </div>
   );
 };

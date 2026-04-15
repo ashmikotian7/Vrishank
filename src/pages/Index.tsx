@@ -1,130 +1,208 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Lock, Clock, Heart, Shield, Sparkles, Send } from "lucide-react";
+import { ArrowRight, Lock, Clock, Heart, Shield, Send } from "lucide-react";
 import { motion } from "framer-motion";
 
 const features = [
-  { icon: Lock, title: "Time-Locked", desc: "Set a future date — your capsule stays sealed until then." },
-  { icon: Shield, title: "Private & Secure", desc: "PIN protection, encryption, and privacy controls." },
-  { icon: Send, title: "Share with Loved Ones", desc: "Invite recipients to experience your capsule together." },
-  { icon: Heart, title: "Emotionally Rich", desc: "Text, photos, videos — an immersive memory experience." },
+  {
+    icon: Clock,
+    title: "Future Message Delivery",
+    desc: "Write messages today and schedule them to be delivered years later."
+  },
+  {
+    icon: Lock,
+    title: "Time-Sealed Capsules",
+    desc: "Lock your memories securely until a chosen future date."
+  },
+  {
+    icon: Send,
+    title: "Deliver to Loved Ones",
+    desc: "Send meaningful messages to friends or family in the future."
+  },
+  {
+    icon: Heart,
+    title: "Emotional Moments",
+    desc: "Capture feelings, dreams, and memories for your future self."
+  },
+  {
+    icon: Shield,
+    title: "All-in-One Capsule",
+    desc: "Secure, emotional, time-locked, and shareable — everything in one powerful digital capsule."
+  },
 ];
 
 const fade = (delay: number) => ({
-  initial: { opacity: 0, y: 20 },
+  initial: { opacity: 0, y: 25 },
   whileInView: { opacity: 1, y: 0 },
   viewport: { once: true },
-  transition: { delay, duration: 0.5 },
+  transition: { delay, duration: 0.5, ease: "easeOut" },
 });
 
-const Index = () => {
+export default function Index() {
   return (
-    <div className="min-h-screen">
-      {/* Hero */}
-      <section className="relative overflow-hidden py-24 md:py-36">
-        <div className="absolute inset-0 gradient-hero opacity-5" />
-        <div className="absolute top-20 right-10 w-72 h-72 rounded-full bg-primary/10 blur-3xl animate-float" />
-        <div className="absolute bottom-10 left-10 w-56 h-56 rounded-full bg-accent/10 blur-3xl animate-float" style={{ animationDelay: "3s" }} />
+    <div className="min-h-screen flex flex-col relative overflow-hidden text-gray-900 dark:text-gray-100 selection:bg-purple-500/30">
 
-        <div className="container mx-auto px-4 relative z-10 text-center max-w-3xl">
-          <motion.div {...fade(0)}>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
-              <Sparkles className="w-4 h-4" /> Preserve Your Most Precious Moments
+      {/* 🌌 BACKGROUND IMAGE */}
+      <div
+        className="absolute inset-0 bg-cover bg-center scale-105"
+        style={{
+          backgroundImage: "url('/time-capsule.jpg')",
+        }}
+      />
+
+      {/* 🎨 PINK + PURPLE TINT OVERLAY */}
+      <div className="absolute inset-0 
+        bg-gradient-to-br 
+        from-pink-400/30 via-purple-400/25 to-indigo-500/30 
+        mix-blend-overlay" 
+      />
+
+      {/* 🌗 LIGHT/DARK OVERLAY */}
+      <div className="absolute inset-0 
+        bg-gradient-to-br 
+        from-white/50 via-white/10 to-transparent 
+        dark:from-black/60 dark:via-purple-900/10 dark:to-black/70 
+        backdrop-blur-[2px]" 
+      />
+
+      {/* ✨ COLOR GLOW */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(139,92,246,0.2),transparent_40%),radial-gradient(circle_at_80%_70%,rgba(236,72,153,0.2),transparent_40%)]" />
+
+      {/* BLOBS */}
+      <div className="absolute top-[-60px] left-[-60px] w-[300px] h-[300px] bg-purple-400/20 rounded-full blur-3xl animate-[float_10s_ease-in-out_infinite]" />
+      <div className="absolute bottom-[-80px] right-[-60px] w-[300px] h-[300px] bg-pink-400/20 rounded-full blur-3xl animate-[float_12s_ease-in-out_infinite]" />
+
+      <div className="relative z-10">
+
+        {/* HERO */}
+        <section className="py-20 px-4">
+          <motion.div className="max-w-3xl mx-auto text-center">
+
+            <div className="w-full px-6 py-8 rounded-3xl 
+              bg-white/40 dark:bg-white/5
+              backdrop-blur-2xl 
+              border border-white/30 dark:border-white/10
+              shadow-lg hover:shadow-xl
+              transition-all duration-500">
+
+              <motion.h1
+                {...fade(0)}
+                className="text-4xl md:text-6xl font-extrabold leading-tight"
+              >
+                Send Messages <br />
+                <span className="bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 bg-clip-text text-transparent">
+                  Into the Future
+                </span>
+              </motion.h1>
+
+              <motion.p
+                {...fade(0.2)}
+                className="mt-5 text-sm md:text-lg text-gray-700 dark:text-gray-300"
+              >
+                Create digital time capsules and deliver messages, memories, and emotions to your future self or loved ones.
+              </motion.p>
+
+              <motion.div
+                {...fade(0.4)}
+                className="mt-8 flex flex-col sm:flex-row gap-4 justify-center"
+              >
+                <Link to="/signup">
+                  <Button className="px-6 py-3 rounded-2xl 
+                    bg-gradient-to-r from-purple-500 to-pink-500 
+                    text-white shadow-md hover:scale-105 transition">
+                    Get Started <ArrowRight className="ml-2" />
+                  </Button>
+                </Link>
+
+                <Link to="/login">
+                  <Button
+                    variant="outline"
+                    className="rounded-2xl 
+                      bg-white/40 dark:bg-white/5
+                      border-white/30
+                      text-gray-900 dark:text-white
+                      
+                      hover:bg-gradient-to-r hover:from-pink-500 hover:to-purple-500
+                      hover:text-white hover:border-transparent
+                      
+                      hover:shadow-lg hover:shadow-pink-500/40
+                      hover:scale-105
+                      
+                      transition-all duration-300"
+                  >
+                    Sign In
+                  </Button>
+                </Link>
+              </motion.div>
             </div>
+
           </motion.div>
+        </section>
 
-          <motion.h1 {...fade(0.1)} className="font-display font-bold text-4xl md:text-6xl lg:text-7xl leading-tight">
-            Your Memories,{" "}
-            <span className="text-gradient">Delivered to the Future</span>
-          </motion.h1>
-
-          <motion.p {...fade(0.2)} className="mt-6 text-lg text-muted-foreground max-w-xl mx-auto">
-            Create digital time capsules filled with messages, photos, and videos.
-            Lock them until the perfect moment — then relive every memory.
-          </motion.p>
-
-          <motion.div {...fade(0.3)} className="mt-10 flex flex-col sm:flex-row gap-3 justify-center">
-            <Link to="/signup">
-              <Button size="lg" className="gap-2 shadow-glow text-base px-8">
-                Start Creating <ArrowRight className="w-4 h-4" />
-              </Button>
-            </Link>
-            <Link to="/login">
-              <Button size="lg" variant="outline" className="text-base px-8">
-                Sign In
-              </Button>
-            </Link>
-          </motion.div>
-
-          {/* Floating capsule preview */}
-          <motion.div {...fade(0.5)} className="mt-16 mx-auto max-w-md">
-            <div className="glass rounded-2xl p-6 shadow-glow animate-float">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-lg gradient-hero flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-primary-foreground" />
-                </div>
-                <div className="text-left">
-                  <p className="font-display font-semibold text-sm">Our First Anniversary</p>
-                  <p className="text-xs text-muted-foreground">Unlocks in 75 days</p>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                {["Days", "Hours", "Min", "Sec"].map((l, i) => (
-                  <div key={l} className="flex-1 bg-muted/50 rounded-lg p-2 text-center">
-                    <div className="font-display font-bold text-gradient">{[75, 14, 32, 8][i]}</div>
-                    <div className="text-[10px] text-muted-foreground">{l}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Features */}
-      <section className="py-20 gradient-warm">
-        <div className="container mx-auto px-4">
-          <motion.div {...fade(0)} className="text-center mb-14">
-            <h2 className="font-display font-bold text-3xl md:text-4xl">Why TimeCapsule?</h2>
-            <p className="text-muted-foreground mt-3 max-w-md mx-auto">Every feature is designed to make your memories more meaningful.</p>
-          </motion.div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
+        {/* FEATURES */}
+        <section className="pb-16 max-w-6xl mx-auto px-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
             {features.map((f, i) => (
-              <motion.div key={f.title} {...fade(i * 0.1)} className="glass rounded-2xl p-6 hover-lift text-center">
-                <div className="w-12 h-12 rounded-xl gradient-hero flex items-center justify-center mx-auto mb-4">
-                  <f.icon className="w-6 h-6 text-primary-foreground" />
+              <motion.div
+                key={f.title}
+                {...fade(i * 0.1)}
+                className="group p-5 rounded-2xl 
+                bg-white/30 dark:bg-white/5
+                backdrop-blur-xl 
+                border border-white/30
+                shadow-sm hover:shadow-lg
+                transition-all duration-300 hover:-translate-y-1"
+              >
+                <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 mb-4">
+                  <f.icon className="text-white w-5 h-5" />
                 </div>
-                <h3 className="font-display font-semibold mb-2">{f.title}</h3>
-                <p className="text-sm text-muted-foreground">{f.desc}</p>
+
+                <h3 className="font-semibold text-gray-900 dark:text-white">
+                  {f.title}
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {f.desc}
+                </p>
               </motion.div>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* CTA */}
-      <section className="py-20">
-        <div className="container mx-auto px-4 text-center">
-          <motion.div {...fade(0)} className="max-w-lg mx-auto glass rounded-3xl p-10 shadow-glow">
-            <h2 className="font-display font-bold text-2xl md:text-3xl mb-4">Ready to Capture a Moment?</h2>
-            <p className="text-muted-foreground mb-6">Start your first time capsule today — it's free.</p>
+        {/* CTA */}
+        <section className="py-16 flex justify-center px-4">
+          <motion.div
+            {...fade(0)}
+            className="w-full max-w-lg p-8 rounded-3xl 
+            bg-white/40 dark:bg-white/5
+            border border-white/30
+            backdrop-blur-2xl
+            shadow-lg text-center"
+          >
+            <h2 className="text-2xl font-bold mb-3">
+              Start Your Time Capsule Journey
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              Write something today that your future self will thank you for.
+            </p>
+
             <Link to="/signup">
-              <Button size="lg" className="gap-2 shadow-glow">
-                Get Started <ArrowRight className="w-4 h-4" />
+              <Button className="px-6 py-3 rounded-2xl 
+              bg-gradient-to-r from-purple-500 to-pink-500 
+              text-white hover:scale-105 transition">
+                Create Now
               </Button>
             </Link>
           </motion.div>
-        </div>
-      </section>
+        </section>
 
-      {/* Footer */}
-      <footer className="border-t border-border/50 py-8">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          © 2026 TimeCapsule. Built with love for cherished memories.
-        </div>
-      </footer>
+        {/* FOOTER (pink glass) */}
+        <footer className="border-t border-white/20 bg-pink-200/30 dark:bg-pink-500/10 backdrop-blur-xl">
+          <div className="max-w-6xl mx-auto px-4 py-5 text-center text-sm text-gray-600 dark:text-gray-400">
+            © 2026 TimeCapsule
+          </div>
+        </footer>
+
+      </div>
     </div>
   );
-};
-
-export default Index;
+}
