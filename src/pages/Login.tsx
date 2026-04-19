@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ import {
 const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -25,6 +26,11 @@ const Login = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [recoveryOpen, setRecoveryOpen] = useState(false);
   const [recoveryEmail, setRecoveryEmail] = useState("");
+
+  // ✅ Scroll to top on refresh / route change
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [pathname]);
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -47,17 +53,15 @@ const Login = () => {
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
 
-      {/* LEFT SIDE - IMAGE */}
-      <div className="relative md:w-1/2 h-64 md:h-auto">
+      {/* ❌ HIDDEN ON MOBILE */}
+      <div className="hidden md:block relative md:w-1/2 h-64 md:h-auto">
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: "url('/time-capsule.jpg')" }}
         />
 
-        {/* overlay */}
         <div className="absolute inset-0 bg-gradient-to-br from-black/40 via-black/20 to-transparent" />
 
-        {/* branding */}
         <div className="relative z-10 flex items-center justify-center h-full text-white px-6 text-center">
           <div>
             <h1 className="text-3xl md:text-4xl font-bold mb-3">
@@ -70,8 +74,8 @@ const Login = () => {
         </div>
       </div>
 
-      {/* RIGHT SIDE - FORM */}
-      <div className="flex items-center justify-center md:w-1/2 p-6 sm:p-10 bg-gradient-to-br from-white to-purple-50 dark:from-black dark:to-black">
+      {/* RIGHT SIDE */}
+      <div className="flex items-center justify-center w-full md:w-1/2 p-4 sm:p-6 md:p-10 bg-gradient-to-br from-white to-purple-50 dark:from-black dark:to-black">
 
         <motion.div
           initial={{ opacity: 0, x: 40 }}
@@ -79,15 +83,14 @@ const Login = () => {
           className="w-full max-w-md"
         >
 
-          {/* CARD */}
           <div className="p-[1px] rounded-3xl bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400">
 
-            <div className="rounded-3xl p-6 sm:p-8 bg-white/80 dark:bg-white/5 backdrop-blur-xl border border-white/30 shadow-xl">
+            <div className="rounded-3xl p-5 sm:p-6 md:p-8 bg-white/80 dark:bg-white/5 backdrop-blur-xl border border-white/30 shadow-xl">
 
               {/* HEADER */}
-              <div className="text-center mb-8">
-                <Link to="/" className="inline-flex items-center gap-2 font-bold text-2xl mb-2">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-md">
+              <div className="text-center mb-6 sm:mb-8">
+                <Link to="/" className="inline-flex items-center gap-2 font-bold text-xl sm:text-2xl mb-2">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-md">
                     <span className="text-white text-sm">⏳</span>
                   </div>
                   <span className="bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
@@ -95,7 +98,7 @@ const Login = () => {
                   </span>
                 </Link>
 
-                <p className="text-gray-600 dark:text-gray-300 text-sm">
+                <p className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm">
                   Sign in to your account
                 </p>
               </div>
@@ -111,7 +114,7 @@ const Login = () => {
                     <Input
                       type="email"
                       placeholder="you@example.com"
-                      className="pl-10 h-11 rounded-xl bg-white/70 dark:bg-white/10"
+                      className="pl-10 h-10 sm:h-11 rounded-xl bg-white/70 dark:bg-white/10"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                     />
@@ -127,7 +130,7 @@ const Login = () => {
                     <Input
                       type={showPass ? "text" : "password"}
                       placeholder="••••••••"
-                      className="pl-10 pr-10 h-11 rounded-xl bg-white/70 dark:bg-white/10"
+                      className="pl-10 pr-10 h-10 sm:h-11 rounded-xl bg-white/70 dark:bg-white/10"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                     />
@@ -142,7 +145,7 @@ const Login = () => {
                   {errors.password && <p className="text-xs text-red-400 mt-1">{errors.password}</p>}
                 </div>
 
-                {/* FORGOT PASSWORD */}
+                {/* FORGOT */}
                 <div className="text-right">
                   <button
                     type="button"
@@ -156,7 +159,7 @@ const Login = () => {
                 {/* BUTTON */}
                 <Button
                   type="submit"
-                  className="w-full h-11 rounded-xl text-white bg-gradient-to-r from-purple-500 to-pink-500 hover:scale-105 transition"
+                  className="w-full h-10 sm:h-11 rounded-xl text-white bg-gradient-to-r from-purple-500 to-pink-500 hover:scale-105 transition"
                 >
                   Sign In
                 </Button>
@@ -172,19 +175,19 @@ const Login = () => {
                   <div className="flex-1 h-px bg-gray-300" />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 mt-4">
-                  <Button variant="outline" className="h-11 rounded-xl">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+                  <Button variant="outline" className="h-10 sm:h-11 rounded-xl">
                     Google
                   </Button>
 
-                  <Button variant="outline" className="h-11 rounded-xl gap-2">
+                  <Button variant="outline" className="h-10 sm:h-11 rounded-xl gap-2">
                     <Github size={16} /> GitHub
                   </Button>
                 </div>
               </div>
 
               {/* SIGNUP */}
-              <p className="text-center text-sm text-gray-600 dark:text-gray-300 mt-6">
+              <p className="text-center text-xs sm:text-sm text-gray-600 dark:text-gray-300 mt-6">
                 Don’t have an account?{" "}
                 <Link
                   to="/signup"
@@ -199,7 +202,7 @@ const Login = () => {
         </motion.div>
       </div>
 
-      {/* RECOVERY MODAL */}
+      {/* MODAL */}
       <Dialog open={recoveryOpen} onOpenChange={setRecoveryOpen}>
         <DialogContent className="backdrop-blur-xl bg-white/80 dark:bg-[#111]/80 rounded-2xl">
           <DialogHeader>

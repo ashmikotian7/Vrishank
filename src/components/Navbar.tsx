@@ -21,10 +21,35 @@ const Navbar = () => {
             </span>
           </Link>
 
-          {/* HAMBURGER */}
+          {/* ✅ DESKTOP MENU */}
+          <div className="hidden md:flex items-center gap-6 text-sm text-white">
+
+            <Link to="/" className="hover:text-purple-400 transition">
+              Home
+            </Link>
+
+            <Link to="/signup" className="hover:text-purple-400 transition">
+              Sign Up
+            </Link>
+
+            <Link to="/login" className="hover:text-purple-400 transition">
+              Login
+            </Link>
+
+            <Link to="/about" className="hover:text-purple-400 transition">
+              About
+            </Link>
+
+            <Link to="/contact" className="hover:text-purple-400 transition">
+              Contact
+            </Link>
+
+          </div>
+
+          {/* ✅ MOBILE HAMBURGER */}
           <button
             onClick={() => setIsOpen(true)}
-            className="text-white hover:scale-110 transition"
+            className="md:hidden text-white hover:scale-110 transition"
           >
             <Menu size={26} />
           </button>
@@ -39,13 +64,13 @@ const Navbar = () => {
         onClick={() => setIsOpen(false)}
       />
 
-      {/* DRAWER */}
+      {/* DRAWER (MOBILE ONLY) */}
       <div
         className={`fixed top-20 right-4 w-64 
         bg-black/90 backdrop-blur-xl 
         border border-white/20 
         rounded-2xl shadow-xl 
-        z-50 transform transition-all duration-300 ${
+        z-50 transform transition-all duration-300 md:hidden ${
           isOpen
             ? "translate-x-0 opacity-100"
             : "translate-x-10 opacity-0 pointer-events-none"
@@ -65,61 +90,42 @@ const Navbar = () => {
         {/* MENU */}
         <div className="flex flex-col">
 
-          {/* HOME (FIRST - NO BORDER) */}
           <Link
             to="/"
             onClick={() => setIsOpen(false)}
-            className="px-6 py-4 text-white text-sm tracking-wide 
-            hover:bg-white/5 hover:pl-8 
-            transition-all duration-300"
+            className="px-6 py-4 text-white text-sm hover:bg-white/5 hover:pl-8 transition-all duration-300"
           >
             Home
           </Link>
 
-          {/* SIGNUP */}
           <Link
             to="/signup"
             onClick={() => setIsOpen(false)}
-            className="px-6 py-4 text-white text-sm tracking-wide 
-            border-t border-white/20
-            hover:bg-white/5 hover:pl-8 
-            transition-all duration-300"
+            className="px-6 py-4 text-white text-sm border-t border-white/20 hover:bg-white/5 hover:pl-8 transition-all duration-300"
           >
             Sign Up
           </Link>
 
-          {/* LOGIN */}
           <Link
             to="/login"
             onClick={() => setIsOpen(false)}
-            className="px-6 py-4 text-white text-sm tracking-wide 
-            border-t border-white/20
-            hover:bg-white/5 hover:pl-8 
-            transition-all duration-300"
+            className="px-6 py-4 text-white text-sm border-t border-white/20 hover:bg-white/5 hover:pl-8 transition-all duration-300"
           >
             Login
           </Link>
 
-          {/* ABOUT */}
           <Link
             to="/about"
             onClick={() => setIsOpen(false)}
-            className="px-6 py-4 text-white text-sm tracking-wide 
-            border-t border-white/20
-            hover:bg-white/5 hover:pl-8 
-            transition-all duration-300"
+            className="px-6 py-4 text-white text-sm border-t border-white/20 hover:bg-white/5 hover:pl-8 transition-all duration-300"
           >
             About
           </Link>
 
-          {/* CONTACT */}
           <Link
             to="/contact"
             onClick={() => setIsOpen(false)}
-            className="px-6 py-4 text-white text-sm tracking-wide 
-            border-t border-white/20
-            hover:bg-white/5 hover:pl-8 
-            transition-all duration-300"
+            className="px-6 py-4 text-white text-sm border-t border-white/20 hover:bg-white/5 hover:pl-8 transition-all duration-300"
           >
             Contact
           </Link>

@@ -1,4 +1,15 @@
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
+
 const About = () => {
+
+  const { pathname } = useLocation();
+
+  // ✅ Scroll to top on refresh / route change
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [pathname]);
+
   return (
     <div className="min-h-screen relative overflow-hidden text-gray-900 dark:text-gray-100">
 
@@ -161,6 +172,13 @@ const About = () => {
         </div>
 
       </div>
+
+      {/* ✅ FOOTER ADDED (outside content, always bottom) */}
+      <footer className="relative z-10 border-t border-white/20 bg-pink-200/30 dark:bg-pink-500/10 backdrop-blur-xl">
+        <div className="max-w-6xl mx-auto px-4 py-5 text-center text-sm text-gray-600 dark:text-gray-400">
+          © 2026 TimeCapsule
+        </div>
+      </footer>
     </div>
   );
 };

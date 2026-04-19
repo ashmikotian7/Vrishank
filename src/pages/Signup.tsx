@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,12 +11,18 @@ import { toast } from "sonner";
 const Signup = () => {
   const { signup } = useAuth();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // ✅ Scroll to top on refresh / route change
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [pathname]);
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -40,23 +46,21 @@ const Signup = () => {
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
 
-      {/* LEFT SIDE - IMAGE */}
-      <div className="relative md:w-1/2 h-64 md:h-auto">
+      {/* ❌ HIDDEN ON MOBILE */}
+      <div className="hidden md:block relative md:w-1/2 h-56 sm:h-64 md:h-auto">
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: "url('/time-capsule.jpg')" }}
         />
 
-        {/* overlay for readability */}
-        <div className="absolute inset-0 bg-gradient-to-br from-black/40 via-black/20 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-br from-black/50 via-black/30 to-transparent" />
 
-        {/* optional branding text */}
-        <div className="relative z-10 flex items-center justify-center h-full text-white px-6 text-center">
+        <div className="relative z-10 flex items-center justify-center h-full text-white px-4 sm:px-6 text-center">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold mb-3">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 sm:mb-3">
               Welcome to TimeCapsule ⏳
             </h1>
-            <p className="text-sm md:text-base text-gray-200">
+            <p className="text-xs sm:text-sm md:text-base text-gray-200">
               Preserve your memories for the future
             </p>
           </div>
@@ -64,7 +68,7 @@ const Signup = () => {
       </div>
 
       {/* RIGHT SIDE - FORM */}
-      <div className="flex items-center justify-center md:w-1/2 p-6 sm:p-10 bg-gradient-to-br from-white to-purple-50 dark:from-black dark:to-black">
+      <div className="flex items-center justify-center w-full md:w-1/2 p-4 sm:p-6 md:p-10 bg-gradient-to-br from-white to-purple-50 dark:from-black dark:to-black">
 
         <motion.div
           initial={{ opacity: 0, x: 40 }}
@@ -72,24 +76,23 @@ const Signup = () => {
           className="w-full max-w-md"
         >
 
-          {/* CARD */}
           <div className="p-[1px] rounded-3xl bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400">
 
-            <div className="rounded-3xl p-6 sm:p-8 bg-white/80 dark:bg-white/5 backdrop-blur-xl border border-white/30 shadow-xl">
+            <div className="rounded-3xl p-5 sm:p-6 md:p-8 bg-white/80 dark:bg-white/5 backdrop-blur-xl border border-white/30 shadow-xl">
 
               {/* HEADER */}
-              <div className="text-center mb-8">
+              <div className="text-center mb-6 sm:mb-8">
                 <div className="flex justify-center mb-3">
-                  <div className="w-11 h-11 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center shadow-md">
+                  <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center shadow-md">
                     <span className="text-white text-sm">⏳</span>
                   </div>
                 </div>
 
-                <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
+                <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
                   Create Account
                 </h2>
 
-                <p className="text-gray-600 dark:text-gray-300 text-sm mt-1">
+                <p className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm mt-1">
                   Join TimeCapsule today
                 </p>
               </div>
@@ -104,7 +107,7 @@ const Signup = () => {
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                     <Input
                       placeholder="John Doe"
-                      className="pl-10 h-11 rounded-xl bg-white/70 dark:bg-white/10"
+                      className="pl-10 h-10 sm:h-11 rounded-xl bg-white/70 dark:bg-white/10"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                     />
@@ -120,7 +123,7 @@ const Signup = () => {
                     <Input
                       type="email"
                       placeholder="you@example.com"
-                      className="pl-10 h-11 rounded-xl bg-white/70 dark:bg-white/10"
+                      className="pl-10 h-10 sm:h-11 rounded-xl bg-white/70 dark:bg-white/10"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                     />
@@ -136,7 +139,7 @@ const Signup = () => {
                     <Input
                       type={showPass ? "text" : "password"}
                       placeholder="••••••••"
-                      className="pl-10 pr-10 h-11 rounded-xl bg-white/70 dark:bg-white/10"
+                      className="pl-10 pr-10 h-10 sm:h-11 rounded-xl bg-white/70 dark:bg-white/10"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                     />
@@ -154,7 +157,7 @@ const Signup = () => {
                 {/* BUTTON */}
                 <Button
                   type="submit"
-                  className="w-full h-11 rounded-xl text-white bg-gradient-to-r from-purple-500 to-pink-500 hover:scale-105 transition"
+                  className="w-full h-10 sm:h-11 rounded-xl text-white bg-gradient-to-r from-purple-500 to-pink-500 hover:scale-105 transition"
                 >
                   Sign Up
                 </Button>
@@ -170,19 +173,19 @@ const Signup = () => {
                   <div className="flex-1 h-px bg-gray-300" />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 mt-4">
-                  <Button variant="outline" className="h-11 rounded-xl">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+                  <Button variant="outline" className="h-10 sm:h-11 rounded-xl">
                     Google
                   </Button>
 
-                  <Button variant="outline" className="h-11 rounded-xl gap-2">
+                  <Button variant="outline" className="h-10 sm:h-11 rounded-xl gap-2">
                     <Github size={16} /> GitHub
                   </Button>
                 </div>
               </div>
 
               {/* LOGIN */}
-              <p className="text-center text-sm text-gray-600 dark:text-gray-300 mt-6">
+              <p className="text-center text-xs sm:text-sm text-gray-600 dark:text-gray-300 mt-6">
                 Already have an account?{" "}
                 <Link
                   to="/login"
