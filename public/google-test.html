@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google OAuth Test</title>
+</head>
+<body>
+    <h1>Google OAuth Test</h1>
+    <p>Testing Google Sign-In with Client ID: 599251054902-9s286dlgrjg24fkkler7vdk873q9hgac.apps.googleusercontent.com</p>
+    
+    <div id="g_id_onload"
+         data-client_id="599251054902-9s286dlgrjg24fkkler7vdk873q9hgac.apps.googleusercontent.com"
+         data-callback="handleCredentialResponse">
+    </div>
+    
+    <div class="g_id_signin"
+         data-type="standard"
+         data-shape="rectangular"
+         data-theme="outline"
+         data-text="signin_with"
+         data-size="large"
+         data-logo_alignment="left">
+    </div>
+    
+    <div id="result"></div>
+
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
+    <script>
+        function handleCredentialResponse(response) {
+            console.log("Encoded JWT ID token: " + response.credential);
+            
+            // Decode the JWT token
+            const payload = JSON.parse(atob(response.credential.split('.')[1]));
+            console.log("User info:", payload);
+            
+            document.getElementById('result').innerHTML = `
+                <h3>Authentication Successful!</h3>
+                <p><strong>Email:</strong> ${payload.email}</p>
+                <p><strong>Name:</strong> ${payload.name}</p>
+                <p><strong>Google ID:</strong> ${payload.sub}</p>
+                <img src="${payload.picture}" alt="Profile Picture" style="width: 50px; height: 50px; border-radius: 50%;">
+            `;
+        }
+        
+        // Log any errors
+        window.addEventListener('error', function(e) {
+            console.error('Google OAuth error:', e.error);
+            document.getElementById('result').innerHTML = `
+                <h3>Error</h3>
+                <p>Check the console for details. Make sure this origin is authorized in Google Cloud Console.</p>
+            `;
+        });
+    </script>
+</body>
+</html>

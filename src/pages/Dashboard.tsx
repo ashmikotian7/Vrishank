@@ -1,10 +1,11 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import { sampleCapsules } from "@/lib/data";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { capsuleApi, Capsule } from "@/lib/capsuleApi";
 import CapsuleCard from "@/components/CapsuleCard";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, LayoutGrid, List, Filter } from "lucide-react";
+import { Plus, Search, LayoutGrid, List, Filter, LogOut, User, Settings } from "lucide-react";
 import { motion } from "framer-motion";
 import {
   Select,
@@ -13,13 +14,63 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Dashboard = () => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [view, setView] = useState<"grid" | "list">("grid");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [capsules, setCapsules] = useState<Capsule[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  const filtered = sampleCapsules.filter(c => {
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+    
+    try {
+      setIsLoggingOut(true);
+      toast.loading("Logging out...");
+      await logout();
+      toast.success("Logged out successfully");
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast.error("Failed to logout. Please try again.");
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
+  useEffect(() => {
+    const loadCapsules = async () => {
+      try {
+        setLoading(true);
+        const data = await capsuleApi.getCapsules();
+        setCapsules(data);
+        setError(null);
+      } catch (err) {
+        setError('Failed to load capsules');
+        console.error('Error loading capsules:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadCapsules();
+  }, []);
+
+  const filtered = capsules.filter(c => {
     if (statusFilter !== "all" && c.status !== statusFilter) return false;
     if (search && !c.title.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
@@ -65,20 +116,68 @@ const Dashboard = () => {
           animate={{ opacity: 1, y: 0 }}
           className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8"
         >
-          <div>
-            <h1 className="font-bold text-3xl bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
-              My Capsules
-            </h1>
-            <p className="text-gray-600 dark:text-gray-300 mt-1">
-              {sampleCapsules.length} capsules created
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between w-full">
+              <h1 className="font-bold text-3xl bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
+                My Capsules
+              </h1>
+            </div>
+            <p className="text-gray-600 dark:text-gray-300">
+              {capsules.length} capsules created
             </p>
           </div>
 
-          <Link to="/create">
-            <Button className="gap-2 h-11 rounded-xl text-white bg-gradient-to-r from-purple-500 to-pink-500 shadow-md hover:scale-105 transition">
-              <Plus className="w-4 h-4" /> New Capsule
-            </Button>
-          </Link>
+          <div className="flex gap-3">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 h-11 rounded-xl border-white/30 bg-white/10 hover:bg-white/20 text-gray-700 dark:text-gray-300"
+                >
+                  <Avatar className="w-5 h-5">
+                    <AvatarFallback className="text-xs">
+                      {user?.full_name?.charAt(0).toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  {user?.full_name || 'User'}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <div className="px-2 py-1.5 text-sm">
+                  <div className="font-medium">{user?.full_name || 'User'}</div>
+                  <div className="text-gray-500 text-xs">{user?.email}</div>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  className="gap-2 cursor-pointer"
+                  onClick={() => navigate("/profile")}
+                >
+                  <User className="w-4 h-4" />
+                  Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem className="gap-2 cursor-pointer">
+                  <Settings className="w-4 h-4" />
+                  Settings
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  className="gap-2 cursor-pointer text-red-600 focus:text-red-600"
+                  onClick={handleLogout}
+                  disabled={isLoggingOut}
+                >
+                  <LogOut className="w-4 h-4" />
+                  {isLoggingOut ? "Logging out..." : "Logout"}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <Link to="/create">
+              <Button className="gap-2 h-11 rounded-xl text-white bg-gradient-to-r from-purple-500 to-pink-500 shadow-md hover:scale-105 transition">
+                <Plus className="w-4 h-4" /> New Capsule
+              </Button>
+            </Link>
+          </div>
         </motion.div>
 
         {/* TIMELINE (GLASS STYLE) */}
@@ -89,7 +188,7 @@ const Dashboard = () => {
           className="mb-8 overflow-x-auto pb-4"
         >
           <div className="flex gap-4 min-w-max">
-            {sampleCapsules.slice(0, 5).map((c) => {
+            {capsules.slice(0, 5).map((c) => {
               const date = new Date(c.unlockDate);
               return (
                 <div key={c.id} className="flex flex-col items-center gap-2">
@@ -160,12 +259,20 @@ const Dashboard = () => {
                 <List className="w-4 h-4" />
               </Button>
             </div>
-
           </div>
         </motion.div>
 
         {/* CAPSULE LIST */}
-        {filtered.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-20 text-gray-600 dark:text-gray-300">
+            <p className="text-lg">Loading capsules...</p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-20 text-gray-600 dark:text-gray-300">
+            <p className="text-lg text-red-600">{error}</p>
+            <p className="text-sm mt-1">Please try again later</p>
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="text-center py-20 text-gray-600 dark:text-gray-300">
             <p className="text-lg">No capsules found</p>
             <p className="text-sm mt-1">Try adjusting your search or filters</p>
@@ -183,7 +290,6 @@ const Dashboard = () => {
             ))}
           </div>
         )}
-
       </div>
     </div>
   );

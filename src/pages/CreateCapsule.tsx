@@ -19,24 +19,20 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import {
-  Bold, Italic, Smile, Upload, X, CalendarIcon, Clock, Globe, Lock, Shield, Eye, HelpCircle,
-  Image, FileText, Save, Send, Gift, Heart, GraduationCap
+  Upload, X, CalendarIcon, Clock, Globe, Lock, Shield, Eye, HelpCircle,
+  Image, FileText, Save, Send, ArrowLeft
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import CountdownTimer from "@/components/CountdownTimer";
+import { capsuleApi } from "@/lib/capsuleApi";
 
 const timezones = [
   "UTC", "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles",
   "Europe/London", "Europe/Paris", "Asia/Tokyo", "Asia/Shanghai", "Australia/Sydney",
 ];
 
-const suggestions = [
-  { icon: Gift, label: "Birthday", date: "Next birthday" },
-  { icon: Heart, label: "Anniversary", date: "Your anniversary" },
-  { icon: GraduationCap, label: "Graduation", date: "Graduation day" },
-];
 
 const CreateCapsule = () => {
   const navigate = useNavigate();
@@ -46,14 +42,17 @@ const CreateCapsule = () => {
   const [date, setDate] = useState<Date>();
   const [time, setTime] = useState("12:00");
   const [timezone, setTimezone] = useState("UTC");
-  const [files, setFiles] = useState<{ name: string; type: string; size: number; progress: number }[]>([]);
+  const [files, setFiles] = useState<File[]>([]);
+const [uploadProgress, setUploadProgress] = useState<{ name: string; type: string; size: number; progress: number }[]>([]);
   const [isPrivate, setIsPrivate] = useState(true);
   const [pinLocked, setPinLocked] = useState(false);
+  const [pinCode, setPinCode] = useState("");
   const [recipients, setRecipients] = useState<string[]>([]);
   const [recipientInput, setRecipientInput] = useState("");
   const [autoSaved, setAutoSaved] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
 
   // Auto-save simulation
   useState(() => {
@@ -68,12 +67,14 @@ const CreateCapsule = () => {
     }
   };
 
-  const simulateUpload = (name: string, type: string, size: number) => {
-    const file = { name, type, size, progress: 0 };
+  const simulateUpload = (file: File) => {
+    const progressItem = { name: file.name, type: file.type, size: file.size, progress: 0 };
+    setUploadProgress(prev => [...prev, progressItem]);
     setFiles(prev => [...prev, file]);
+    
     const interval = setInterval(() => {
-      setFiles(prev => prev.map(f =>
-        f.name === name ? { ...f, progress: Math.min(f.progress + 20, 100) } : f
+      setUploadProgress(prev => prev.map(p =>
+        p.name === file.name ? { ...p, progress: Math.min(p.progress + 20, 100) } : p
       ));
     }, 300);
     setTimeout(() => clearInterval(interval), 1800);
@@ -83,12 +84,12 @@ const CreateCapsule = () => {
     e.preventDefault();
     setDragOver(false);
     const items = Array.from(e.dataTransfer.files);
-    items.forEach(f => simulateUpload(f.name, f.type, f.size));
+    items.forEach(f => simulateUpload(f));
   }, []);
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const items = Array.from(e.target.files || []);
-    items.forEach(f => simulateUpload(f.name, f.type, f.size));
+    items.forEach(f => simulateUpload(f));
   };
 
   const handleSubmit = () => {
@@ -99,10 +100,60 @@ const CreateCapsule = () => {
     setConfirmOpen(true);
   };
 
-  const confirmCreate = () => {
-    setConfirmOpen(false);
-    toast.success("Capsule created successfully! ✨");
-    navigate("/dashboard");
+  const confirmCreate = async () => {
+    if (!title || !date) {
+      toast.error("Please fill in the title and select a date");
+      return;
+    }
+
+    if (pinLocked && !pinCode) {
+      toast.error("Please enter a PIN code or disable PIN lock");
+      return;
+    }
+
+    if (pinLocked && pinCode.length !== 4) {
+      toast.error("PIN must be exactly 4 digits");
+      return;
+    }
+
+    try {
+      setIsCreating(true);
+      setConfirmOpen(false);
+      toast.loading("Creating capsule...");
+
+      const unlockDate = new Date(`${format(date, "yyyy-MM-dd")}T${time}:00Z`).toISOString();
+      
+      const capsuleData = {
+        title,
+        description,
+        message,
+        is_private: isPrivate,
+        pin_lock: pinLocked ? pinCode : undefined,
+        unlock_date: unlockDate,
+        timezone: timezone,
+        recipient_emails: recipients
+      };
+
+      // Create capsule first
+      const capsule = await capsuleApi.createCapsule(capsuleData);
+      
+      // Then upload files if any
+      if (files.length > 0) {
+        toast.loading("Uploading files...");
+        for (const file of files) {
+          await capsuleApi.uploadAttachment(capsule.id, file);
+        }
+      }
+      
+      toast.success("Capsule created successfully! ✨");
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Error creating capsule:", error);
+      toast.error("Failed to create capsule. Please try again.");
+      setConfirmOpen(true); // Reopen dialog if creation fails
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const unlockDate = date ? new Date(`${format(date, "yyyy-MM-dd")}T${time}:00Z`).toISOString() : null;
@@ -139,9 +190,19 @@ const CreateCapsule = () => {
           animate={{ opacity: 1, y: 0 }}
           className="flex items-center justify-between mb-8"
         >
-          <div>
-            <h1 className="font-display font-bold text-3xl text-gray-900 dark:text-white">Create a Capsule</h1>
-            <p className="text-gray-700 dark:text-gray-300 mt-1">Fill it with memories and seal it for the future</p>
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => navigate("/dashboard")}
+              className="h-10 w-10 rounded-xl border-white/30 bg-white/10 hover:bg-white/20 text-gray-700 dark:text-gray-300"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+            <div>
+              <h1 className="font-display font-bold text-3xl text-gray-900 dark:text-white">Create a Capsule</h1>
+              <p className="text-gray-700 dark:text-gray-300 mt-1">Fill it with memories and seal it for the future</p>
+            </div>
           </div>
           {autoSaved && (
             <div className="flex items-center gap-2 text-sm text-capsule-success bg-white/20 dark:bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20">
@@ -203,11 +264,6 @@ const CreateCapsule = () => {
                   border border-white/30 dark:border-white/10
                   shadow-lg hover:shadow-xl transition-all duration-500">
                   <Label className="text-gray-800 dark:text-gray-200">Message</Label>
-                  <div className="flex items-center gap-1 p-1 bg-white/20 rounded-lg w-fit border border-white/20">
-                    <Button size="icon" variant="ghost" className="h-8 w-8"><Bold className="w-4 h-4" /></Button>
-                    <Button size="icon" variant="ghost" className="h-8 w-8"><Italic className="w-4 h-4" /></Button>
-                    <Button size="icon" variant="ghost" className="h-8 w-8"><Smile className="w-4 h-4" /></Button>
-                  </div>
                   <Textarea
                     placeholder="Write your heartfelt message here..."
                     className="min-h-[180px] rounded-xl resize-none bg-white/20 border border-white/20 placeholder:text-gray-500"
@@ -250,9 +306,9 @@ const CreateCapsule = () => {
                       <input type="file" multiple className="hidden" onChange={handleFileInput} />
                     </label>
                   </div>
-                  {files.length > 0 && (
+                  {uploadProgress.length > 0 && (
                     <div className="space-y-2">
-                      {files.map(f => (
+                      {uploadProgress.map(f => (
                         <div key={f.name} className="flex items-center gap-3 p-3 rounded-xl bg-white/20 border border-white/20">
                           {f.type.startsWith("image") ? <Image className="w-5 h-5 text-purple-500" /> : <FileText className="w-5 h-5 text-purple-500" />}
                           <div className="flex-1 min-w-0">
@@ -262,7 +318,10 @@ const CreateCapsule = () => {
                             </div>
                           </div>
                           <span className="text-xs text-gray-500">{f.progress}%</span>
-                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setFiles(prev => prev.filter(x => x.name !== f.name))}>
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => {
+                            setUploadProgress(prev => prev.filter(x => x.name !== f.name));
+                            setFiles(prev => prev.filter(x => x.name !== f.name));
+                          }}>
                             <X className="w-3.5 h-3.5" />
                           </Button>
                         </div>
@@ -312,6 +371,21 @@ const CreateCapsule = () => {
                     </div>
                     <Switch checked={pinLocked} onCheckedChange={setPinLocked} />
                   </div>
+
+                  {pinLocked && (
+                    <div className="space-y-2">
+                      <Label className="text-gray-800 dark:text-gray-200">PIN Code</Label>
+                      <Input
+                        type="password"
+                        placeholder="Enter 4-digit PIN"
+                        className="h-10 rounded-xl bg-white/20 border border-white/20 placeholder:text-gray-500"
+                        value={pinCode}
+                        onChange={e => setPinCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                        maxLength={4}
+                      />
+                      <p className="text-xs text-gray-500">Enter a 4-digit PIN that will be required to open this capsule</p>
+                    </div>
+                  )}
 
                   {/* Recipients */}
                   <div className="space-y-2">
@@ -419,27 +493,7 @@ const CreateCapsule = () => {
                     </div>
                   )}
 
-                  {/* Smart Suggestions */}
-                  <div className="space-y-2">
-                    <Label className="text-xs text-gray-500">Quick picks</Label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {suggestions.map(s => (
-                        <button
-                          key={s.label}
-                          className="p-3 rounded-xl bg-white/20 border border-white/20 hover:bg-white/30 text-center transition-colors"
-                          onClick={() => {
-                            const d = new Date();
-                            d.setMonth(d.getMonth() + 3);
-                            setDate(d);
-                          }}
-                        >
-                          <s.icon className="w-5 h-5 mx-auto mb-1 text-purple-500" />
-                          <p className="text-[11px] font-medium text-gray-700 dark:text-gray-300">{s.label}</p>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
+                  
                   {/* Preview Card */}
                   <div className="rounded-xl bg-white/20 border border-white/20 p-4 space-y-3 mt-4">
                     <h4 className="font-display font-semibold text-sm text-gray-800 dark:text-gray-200">Preview</h4>
@@ -469,8 +523,9 @@ const CreateCapsule = () => {
                     <Button
                       className="flex-1 rounded-xl font-semibold text-white bg-gradient-to-r from-purple-500 to-pink-500 hover:scale-[1.02] transition shadow-lg"
                       onClick={handleSubmit}
+                      disabled={isCreating}
                     >
-                      <Send className="w-4 h-4 mr-2" /> Create
+                      <Send className="w-4 h-4 mr-2" /> {isCreating ? "Creating..." : "Create"}
                     </Button>
                   </div>
 

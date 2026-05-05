@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Capsule } from "@/lib/data";
+import { Capsule } from "@/lib/capsuleApi";
 import { Clock, Lock, CheckCircle, Image, Users, Pencil, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,17 @@ interface Props {
 }
 
 const CapsuleCard = ({ capsule, view = "grid" }: Props) => {
-  const status = statusConfig[capsule.status];
+  // Determine status based on API response fields
+  const getStatus = () => {
+    if (capsule.is_unlocked) return 'delivered';
+    if (capsule.is_sealed) return 'locked';
+    return 'scheduled';
+  };
+  
+  // Count notified recipients
+  const notifiedCount = capsule.recipients.filter(r => r.is_notified).length;
+  
+  const status = statusConfig[getStatus()] || statusConfig.locked;
   const StatusIcon = status.icon;
 
   if (view === "list") {
@@ -32,16 +42,17 @@ const CapsuleCard = ({ capsule, view = "grid" }: Props) => {
           <StatusIcon className="w-5 h-5 text-primary-foreground" />
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="font-display font-semibold truncate">{capsule.title}</h3>
-          <p className="text-sm text-muted-foreground truncate">{capsule.description}</p>
+          <p className="font-medium text-gray-800 dark:text-gray-200">{capsule.title}</p>
+          <p className="text-sm text-gray-500">{capsule.description}</p>
+          {capsule.message && <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">{capsule.message}</p>}
         </div>
         <Badge variant="outline" className={status.className}>{status.label}</Badge>
         <div className="hidden sm:flex items-center gap-3 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1"><Image className="w-3 h-3" /> {capsule.mediaCount}</span>
-          <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {capsule.recipientCount}</span>
+          <span className="flex items-center gap-1"><Image className="w-3 h-3" /> {capsule.attachments.length} {capsule.attachments.length === 1 ? 'file' : 'files'}</span>
+          <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {capsule.recipients.length} {capsule.recipients.length === 1 ? 'user' : 'users'}{notifiedCount > 0 && ` (${notifiedCount} notified)`}</span>
         </div>
         <div className="flex gap-1">
-          {capsule.status === "delivered" && (
+          {getStatus() === "delivered" && (
             <Link to={`/open/${capsule.id}`}>
               <Button size="sm" variant="ghost">Open</Button>
             </Link>
@@ -72,17 +83,17 @@ const CapsuleCard = ({ capsule, view = "grid" }: Props) => {
           </Badge>
         </div>
 
-        {capsule.status !== "delivered" && (
-          <CountdownTimer targetDate={capsule.unlockDate} />
+        {getStatus() !== "delivered" && (
+          <CountdownTimer targetDate={capsule.unlock_date} />
         )}
 
         <div className="flex items-center justify-between pt-2 border-t border-border/50">
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1"><Image className="w-3.5 h-3.5" /> {capsule.mediaCount} files</span>
-            <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {capsule.recipientCount}</span>
+            <span className="flex items-center gap-1"><Image className="w-3.5 h-3.5" /> {capsule.attachments.length} {capsule.attachments.length === 1 ? 'file' : 'files'}</span>
+            <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {capsule.recipients.length} {capsule.recipients.length === 1 ? 'user' : 'users'}{notifiedCount > 0 && ` (${notifiedCount} notified)`}</span>
           </div>
           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            {capsule.status === "delivered" && (
+            {getStatus() === "delivered" && (
               <Link to={`/open/${capsule.id}`}>
                 <Button size="sm">Open</Button>
               </Link>

@@ -4,9 +4,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, Mail, Lock, Github } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import GoogleButton from "@/components/GoogleButton";
 import {
   Dialog,
   DialogContent,
@@ -16,7 +17,7 @@ import {
 } from "@/components/ui/dialog";
 
 const Login = () => {
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
@@ -26,6 +27,7 @@ const Login = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [recoveryOpen, setRecoveryOpen] = useState(false);
   const [recoveryEmail, setRecoveryEmail] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   // ✅ Scroll to top on refresh / route change
   useEffect(() => {
@@ -37,17 +39,46 @@ const Login = () => {
     if (!email) e.email = "Email is required";
     else if (!/\S+@\S+\.\S+/.test(email)) e.email = "Invalid email";
     if (!password) e.password = "Password is required";
-    else if (password.length < 6) e.password = "Minimum 6 characters";
+    else if (password.length < 8) e.password = "Minimum 8 characters";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleGoogleLogin = async (response: any) => {
+    setIsLoading(true);
+    try {
+      const success = await loginWithGoogle(response);
+      if (success) {
+        toast.success("Welcome back with Google!");
+        navigate("/dashboard");
+      } else {
+        toast.error("Google login failed. Please try again.");
+      }
+    } catch (error) {
+      toast.error("An error occurred during Google login.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
-    login(email, password);
-    toast.success("Welcome back!");
-    navigate("/dashboard");
+    
+    setIsLoading(true);
+    try {
+      const success = await login(email, password);
+      if (success) {
+        toast.success("Welcome back!");
+        navigate("/dashboard");
+      } else {
+        toast.error("Login failed. Please check your credentials.");
+      }
+    } catch (error) {
+      toast.error("An error occurred during login.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -159,9 +190,10 @@ const Login = () => {
                 {/* BUTTON */}
                 <Button
                   type="submit"
-                  className="w-full h-10 sm:h-11 rounded-xl text-white bg-gradient-to-r from-purple-500 to-pink-500 hover:scale-105 transition"
+                  disabled={isLoading}
+                  className="w-full h-10 sm:h-11 rounded-xl text-white bg-gradient-to-r from-purple-500 to-pink-500 hover:scale-105 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Sign In
+                  {isLoading ? "Signing in..." : "Sign In"}
                 </Button>
               </form>
 
@@ -175,14 +207,8 @@ const Login = () => {
                   <div className="flex-1 h-px bg-gray-300" />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
-                  <Button variant="outline" className="h-10 sm:h-11 rounded-xl">
-                    Google
-                  </Button>
-
-                  <Button variant="outline" className="h-10 sm:h-11 rounded-xl gap-2">
-                    <Github size={16} /> GitHub
-                  </Button>
+                <div className="flex justify-center mt-4">
+                  <GoogleButton onSuccess={handleGoogleLogin} />
                 </div>
               </div>
 

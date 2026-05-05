@@ -4,20 +4,23 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, Mail, Lock, User, Github } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import GoogleButton from "@/components/GoogleButton";
 
 const Signup = () => {
-  const { signup } = useAuth();
+  const { signup, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(false);
 
   // ✅ Scroll to top on refresh / route change
   useEffect(() => {
@@ -30,17 +33,46 @@ const Signup = () => {
     if (!email) e.email = "Email is required";
     else if (!/\S+@\S+\.\S+/.test(email)) e.email = "Invalid email";
     if (!password) e.password = "Password is required";
-    else if (password.length < 6) e.password = "Minimum 6 characters";
+    else if (password.length < 8) e.password = "Minimum 8 characters";
+    if (!passwordConfirm) e.password_confirm = "Please confirm your password";
+    else if (password !== passwordConfirm) e.password_confirm = "Passwords don't match";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleGoogleSignup = async (response: any) => {
+    setIsLoading(true);
+    try {
+      const success = await loginWithGoogle(response);
+      if (success) {
+        toast.success("Welcome to TimeCapsule with Google!");
+        navigate("/dashboard");
+      } else {
+        toast.error("Google signup failed. Please try again.");
+      }
+    } catch (error) {
+      toast.error("An error occurred during Google signup.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
-    signup(name, email, password);
-    toast.success("Account created! Welcome 🎉");
-    navigate("/dashboard");
+    
+    setIsLoading(true);
+    try {
+      const success = await signup(name, email, password, passwordConfirm);
+      if (success) {
+        toast.success("Account created! Please login to continue 🎉");
+        navigate("/login");
+      }
+    } catch (error: any) {
+      toast.error(error.message || "An error occurred during signup.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -154,12 +186,29 @@ const Signup = () => {
                   {errors.password && <p className="text-xs text-red-400 mt-1">{errors.password}</p>}
                 </div>
 
+                {/* Confirm Password */}
+                <div>
+                  <Label>Confirm Password</Label>
+                  <div className="relative mt-1">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                    <Input
+                      type={showPass ? "text" : "password"}
+                      placeholder="••••••••"
+                      className="pl-10 h-10 sm:h-11 rounded-xl bg-white/70 dark:bg-white/10"
+                      value={passwordConfirm}
+                      onChange={(e) => setPasswordConfirm(e.target.value)}
+                    />
+                  </div>
+                  {errors.password_confirm && <p className="text-xs text-red-400 mt-1">{errors.password_confirm}</p>}
+                </div>
+
                 {/* BUTTON */}
                 <Button
                   type="submit"
-                  className="w-full h-10 sm:h-11 rounded-xl text-white bg-gradient-to-r from-purple-500 to-pink-500 hover:scale-105 transition"
+                  disabled={isLoading}
+                  className="w-full h-10 sm:h-11 rounded-xl text-white bg-gradient-to-r from-purple-500 to-pink-500 hover:scale-105 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Sign Up
+                  {isLoading ? "Creating account..." : "Sign Up"}
                 </Button>
               </form>
 
@@ -173,14 +222,8 @@ const Signup = () => {
                   <div className="flex-1 h-px bg-gray-300" />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
-                  <Button variant="outline" className="h-10 sm:h-11 rounded-xl">
-                    Google
-                  </Button>
-
-                  <Button variant="outline" className="h-10 sm:h-11 rounded-xl gap-2">
-                    <Github size={16} /> GitHub
-                  </Button>
+                <div className="flex justify-center mt-4">
+                  <GoogleButton onSuccess={handleGoogleSignup} />
                 </div>
               </div>
 

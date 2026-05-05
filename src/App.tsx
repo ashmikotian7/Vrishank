@@ -16,6 +16,7 @@ import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import CreateCapsule from "./pages/CreateCapsule";
 import OpenCapsule from "./pages/OpenCapsule";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
 import About from "./pages/About";
@@ -33,20 +34,18 @@ const App = () => {
             <Sonner />
 
             <BrowserRouter>
-              {/* ✅ Global Navbar (only here) */}
-              <Navbar />
-
               {/* ✅ All routes */}
               <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/signup" element={<Signup />} />
+                <Route path="/" element={<><Navbar /><Index /></>} />
+                <Route path="/login" element={<><Navbar /><Login /></>} />
+                <Route path="/signup" element={<><Navbar /><Signup /></>} />
                 <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/profile" element={<Profile />} />
                 <Route path="/create" element={<CreateCapsule />} />
                 <Route path="/open/:id" element={<OpenCapsule />} />
-                <Route path="/about" element={<About />} />
-                <Route path="/contact" element={<Contact />} />
-                <Route path="*" element={<NotFound />} />
+                <Route path="/about" element={<><Navbar /><About /></>} />
+                <Route path="/contact" element={<><Navbar /><Contact /></>} />
+                <Route path="*" element={<><Navbar /><NotFound /></>} />
               </Routes>
             </BrowserRouter>
 
