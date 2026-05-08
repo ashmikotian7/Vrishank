@@ -4,23 +4,26 @@ from django.core.validators import RegexValidator
 import uuid
 
 class Capsule(models.Model):
+    id = models.AutoField(primary_key=True)
     title = models.CharField(max_length=200)
-    description = models.TextField(blank=True)
-    message = models.TextField()
+    description = models.TextField(blank=True, null=True)
+    message = models.TextField(blank=True, null=True)
+    unlock_date = models.DateTimeField()
+    timezone = models.CharField(max_length=50, default='UTC')
+    is_private = models.BooleanField(default=False)
+    is_sealed = models.BooleanField(default=False)
+    pin_lock = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        validators=[RegexValidator(r'^\d{4}$', 'PIN must be exactly 4 digits')]
+    )
+    unlock_notifications_sent = models.BooleanField(default=False)
     creator = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='capsules'
     )
-    is_private = models.BooleanField(default=True)
-    pin_lock = models.CharField(
-        max_length=4,
-        blank=True,
-        validators=[RegexValidator(r'^\d{4}$', 'PIN must be exactly 4 digits')]
-    )
-    unlock_date = models.DateTimeField()
-    timezone = models.CharField(max_length=50, default='UTC')
-    is_sealed = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

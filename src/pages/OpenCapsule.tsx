@@ -15,7 +15,7 @@ const OpenCapsule = () => {
   const [capsule, setCapsule] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [phase, setPhase] = useState<"locked" | "unlock" | "reveal" | "content">("locked");
+  const [phase, setPhase] = useState<"pin" | "locked" | "unlock" | "reveal" | "content" | "direct">("locked");
   const [pin, setPin] = useState("");
   const [currentImage, setCurrentImage] = useState(0);
   const [musicOn, setMusicOn] = useState(false);
@@ -27,25 +27,59 @@ const OpenCapsule = () => {
       
       try {
         setLoading(true);
+        setCapsule(null); // Reset capsule state to force refresh
         
         // First try to get capsule data without auth (for public access)
         try {
           const capsuleData = await capsuleApi.unlockCapsule(parseInt(id), '');
+          console.log("Initial capsule data:", capsuleData);
+          console.log("Initial attachments:", capsuleData.attachments);
           setCapsule(capsuleData);
-          setPhase("unlock");
+          
+          // Check if capsule is already unlocked (time reached)
+          if (capsuleData.is_unlocked) {
+            // Go directly to content view (PIN already verified)
+            setPhase("content");
+          } else {
+            // Capsule still requires PIN and time not reached
+            if (capsuleData.pin_lock) {
+              setPhase("pin");
+            } else {
+              setPhase("locked");
+            }
+          }
         } catch (unlockErr) {
+          console.log("Unlock failed, trying authenticated endpoint...");
           // If unlock fails, try authenticated endpoint
           try {
             const capsuleData = await capsuleApi.getCapsule(id);
+            console.log("Authenticated endpoint data:", capsuleData);
             setCapsule(capsuleData);
             
             // Check if capsule is unlocked
             if (capsuleData.is_unlocked) {
-              setPhase("unlock");
+              // Check if capsule has PIN lock
+              if (capsuleData.pin_lock) {
+                setPhase("pin"); // Ask for PIN even if time reached
+              } else {
+                // No PIN - auto-open
+                if (capsuleData.attachments && capsuleData.attachments.length > 0) {
+                  setPhase("unlock"); // Show loading first
+                  setTimeout(() => setPhase("direct"), 2500); // Then show content after 2.5s
+                } else {
+                  setPhase("unlock");
+                }
+              }
             } else {
-              setPhase("locked");
+              // Capsule is still locked (time not reached)
+              if (capsuleData.pin_lock) {
+                setPhase("pin");
+              } else {
+                setPhase("locked");
+              }
             }
           } catch (authErr) {
+            console.error("Authenticated endpoint also failed:", authErr);
             throw new Error("Capsule not found or access denied");
           }
         }
@@ -77,17 +111,42 @@ const OpenCapsule = () => {
     }
   }, [phase]);
 
+  // Log capsule state changes
+  useEffect(() => {
+    if (capsule) {
+      console.log("=== CAPSULE STATE UPDATE ===");
+      console.log("Capsule title:", capsule.title);
+      console.log("Capsule description:", capsule.description);
+      console.log("Capsule message:", capsule.message);
+      console.log("Capsule attachments:", capsule.attachments);
+      console.log("Capsule is_unlocked:", capsule.is_unlocked);
+      console.log("Capsule pin_lock:", capsule.pin_lock);
+      console.log("Current phase:", phase);
+    }
+  }, [capsule, phase]);
+
   const handleUnlock = async () => {
     if (!capsule || !id) return;
     
     try {
       const unlockedCapsule = await capsuleApi.unlockCapsule(parseInt(id), pin);
+      console.log("Unlocked capsule data:", unlockedCapsule);
+      console.log("Attachments:", unlockedCapsule.attachments);
       setCapsule(unlockedCapsule);
-      setPhase("unlock");
-      setError(null);
+      
+      // PIN was correct - capsule is now unlocked
+      if (unlockedCapsule) {
+        // Go directly to content view (skip animation for PIN unlock)
+        setPhase("content");
+      } else {
+        // PIN was incorrect
+        setError("Invalid PIN. Please try again.");
+        setPhase("pin");
+      }
     } catch (err) {
       console.error("Unlock error:", err);
       setError("Failed to unlock capsule. Please check the PIN and try again.");
+      setPhase("pin");
     }
   };
 
@@ -119,6 +178,49 @@ const OpenCapsule = () => {
       <div className="fixed top-1/3 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-primary/5 blur-3xl" />
 
       <AnimatePresence mode="wait">
+        {phase === "pin" && (
+          <motion.div
+            key="pin"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 flex items-center justify-center z-50"
+          >
+            <div className="text-center max-w-md mx-4">
+              <motion.div
+                animate={{ scale: [1, 1.1, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="w-32 h-32 rounded-full gradient-hero mx-auto flex items-center justify-center shadow-glow mb-8"
+              >
+                <Lock className="w-12 h-12 text-white" />
+              </motion.div>
+              <h2 className="font-display text-2xl font-bold mb-4">Enter PIN</h2>
+              <p className="text-muted-foreground mb-6">This capsule is protected with a PIN.</p>
+              
+              <div className="space-y-4 mb-6">
+                <Input
+                  type="password"
+                  placeholder="Enter 4-digit PIN"
+                  value={pin}
+                  onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                  className="max-w-xs mx-auto"
+                  maxLength={4}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Button onClick={handleUnlock} disabled={pin.length !== 4} className="w-full">
+                  Unlock Capsule
+                </Button>
+              </div>
+              
+              {error && (
+                <p className="text-red-500 text-sm mt-2">{error}</p>
+              )}
+            </div>
+          </motion.div>
+        )}
+
         {phase === "locked" && (
           <motion.div
             key="locked"
@@ -135,34 +237,16 @@ const OpenCapsule = () => {
               >
                 <Lock className="w-12 h-12 text-white" />
               </motion.div>
-              <h2 className="font-display text-2xl font-bold mb-4">{capsule.title}</h2>
-              {capsule.description && (
-                <p className="text-muted-foreground mb-4">{capsule.description}</p>
-              )}
+              <h2 className="font-display text-2xl font-bold mb-4">Capsule Locked</h2>
               <p className="text-muted-foreground mb-6">This capsule is still sealed and cannot be opened yet.</p>
               
-              {capsule.pin_lock && (
-                <div className="space-y-4 mb-6">
-                  <Input
-                    type="password"
-                    placeholder="Enter 4-digit PIN"
-                    value={pin}
-                    onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                    className="max-w-xs mx-auto"
-                    maxLength={4}
-                  />
-                </div>
-              )}
-              
               <div className="space-y-2">
-                <Button onClick={handleUnlock} disabled={!capsule.is_unlocked} className="w-full">
-                  {capsule.is_unlocked ? "Open Capsule" : "Still Locked"}
+                <Button disabled className="w-full">
+                  Still Locked
                 </Button>
-                {!capsule.is_unlocked && (
-                  <p className="text-sm text-muted-foreground">
-                    Available on: {new Date(capsule.unlock_date).toLocaleString()}
-                  </p>
-                )}
+                <p className="text-sm text-muted-foreground">
+                  Available on: {new Date(capsule.unlock_date).toLocaleString()}
+                </p>
               </div>
               
               {error && (
@@ -230,12 +314,12 @@ const OpenCapsule = () => {
           </motion.div>
         )}
 
-        {phase === "content" && (
+        {(phase === "content" || phase === "direct") && (
           <motion.div
-            key="content"
-            initial={{ opacity: 0 }}
+            key={phase}
+            initial={{ opacity: phase === "direct" ? 1 : 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.8 }}
+            transition={{ duration: phase === "direct" ? 0 : 0.8 }}
             className="relative z-10"
           >
             {/* Top bar */}
@@ -252,6 +336,32 @@ const OpenCapsule = () => {
                 </Button>
               </div>
             </div>
+
+            {/* Direct view header with capsule info */}
+            {phase === "direct" && (
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="container mx-auto px-4 py-6 max-w-3xl"
+              >
+                <div className="glass rounded-2xl p-6 mb-8 shadow-glow">
+                  <h1 className="font-display text-3xl md:text-4xl font-bold text-gradient mb-4">
+                    {capsule.title}
+                  </h1>
+                  {capsule.description && (
+                    <p className="text-lg text-muted-foreground mb-4">
+                      {capsule.description}
+                    </p>
+                  )}
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <span>📅 Created {new Date(capsule.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</span>
+                    {capsule.pin_lock && <span>🔐 PIN Protected</span>}
+                    {capsule.attachments && capsule.attachments.length > 0 && <span>📎 {capsule.attachments.length} Attachments</span>}
+                  </div>
+                </div>
+              </motion.div>
+            )}
 
             <div className="container mx-auto px-4 py-12 max-w-3xl">
               {/* Message */}
@@ -273,7 +383,26 @@ const OpenCapsule = () => {
               </motion.div>
 
               {/* Media Carousel - Show actual attachments */}
-              {capsule.attachments && capsule.attachments.length > 0 && (
+              {(() => {
+                console.log("=== ATTACHMENT DEBUG ===");
+                console.log("Capsule:", capsule);
+                console.log("Attachments array:", capsule.attachments);
+                console.log("Attachments length:", capsule.attachments?.length || 0);
+                console.log("Phase:", phase);
+                
+                if (capsule.attachments && capsule.attachments.length > 0) {
+                  console.log("✅ Should show attachments section");
+                  capsule.attachments.forEach((att, index) => {
+                    console.log(`Attachment ${index}:`, att);
+                    console.log(`File URL: ${att.file_url}`);
+                    console.log(`File name: ${att.file_name}`);
+                  });
+                  return true;
+                } else {
+                  console.log("❌ No attachments to show");
+                  return false;
+                }
+              })() && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -283,16 +412,36 @@ const OpenCapsule = () => {
                   <h3 className="font-display font-semibold text-lg mb-4">Memories</h3>
                   <div className="relative rounded-2xl overflow-hidden shadow-glow">
                     <AnimatePresence mode="wait">
-                      <motion.img
-                        key={currentImage}
-                        src={capsule.attachments[currentImage]?.file_url}
-                        alt={capsule.attachments[currentImage]?.file_name}
-                        initial={{ opacity: 0, x: 50 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -50 }}
-                        transition={{ duration: 0.3 }}
-                        className="w-full h-[400px] object-cover"
-                      />
+                      {capsule.attachments[currentImage]?.file_url ? (
+                        <motion.img
+                          key={currentImage}
+                          src={capsule.attachments[currentImage]?.file_url}
+                          alt={capsule.attachments[currentImage]?.file_name}
+                          initial={{ opacity: 0, x: 50 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -50 }}
+                          transition={{ duration: 0.3 }}
+                          className="w-full h-[400px] object-cover"
+                          onError={(e) => {
+                            console.error("Image failed to load:", e);
+                            console.error("Failed URL:", capsule.attachments[currentImage]?.file_url);
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-[400px] flex items-center justify-center bg-gray-100 rounded-2xl">
+                          <div className="text-center">
+                            <div className="text-6xl mb-4">📁</div>
+                            <p className="text-lg font-semibold">{capsule.attachments[currentImage]?.file_name || 'Unknown File'}</p>
+                            <p className="text-sm text-gray-500">
+                              {capsule.attachments[currentImage]?.file_type || 'Unknown type'} • 
+                              {(capsule.attachments[currentImage]?.file_size / 1024 / 1024).toFixed(2)} MB
+                            </p>
+                            <p className="text-xs text-red-500 mt-2">
+                              URL: {capsule.attachments[currentImage]?.file_url || 'No URL'}
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </AnimatePresence>
                     <div className="absolute inset-0 bg-gradient-to-t from-foreground/20 to-transparent" />
                     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">

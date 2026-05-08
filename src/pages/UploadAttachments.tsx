@@ -16,6 +16,7 @@ const UploadAttachments = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (!capsuleId) {
@@ -53,19 +54,25 @@ const UploadAttachments = () => {
     }
 
     setIsUploading(true);
-    toast.loading("Uploading files...");
+    const toastId = toast.loading("Uploading files...");
 
     try {
       for (const file of files) {
-        await capsuleApi.uploadAttachment(parseInt(capsuleId), file);
+        await capsuleApi.uploadAttachment(parseInt(capsuleId), file, (progress) => {
+          setUploadProgress(prev => ({
+            ...prev,
+            [file.name]: progress
+          }));
+        });
         setUploadedFiles(prev => [...prev, file.name]);
       }
       
-      toast.success(`Successfully uploaded ${files.length} file(s)!`);
+      toast.success(`Successfully uploaded ${files.length} file(s)!`, { id: toastId });
       setFiles([]);
+      setUploadProgress({});
     } catch (error) {
       console.error("Upload error:", error);
-      toast.error("Failed to upload some files. Please try again.");
+      toast.error("Failed to upload some files. Please try again.", { id: toastId });
     } finally {
       setIsUploading(false);
     }
@@ -197,6 +204,7 @@ const UploadAttachments = () => {
                     maxFiles={20}
                     maxSize={100 * 1024 * 1024} // 100MB
                     disabled={isUploading}
+                    externalUploadProgress={uploadProgress}
                   />
                 </div>
               </div>

@@ -10,6 +10,7 @@ from .serializers import (
     CapsuleSerializer, CapsuleCreateUpdateSerializer, 
     CapsuleDetailSerializer, CapsuleAttachmentSerializer
 )
+from .utils import send_capsule_unlocked_notifications
 
 class CapsuleListCreateView(generics.ListCreateAPIView):
     serializer_class = CapsuleSerializer
@@ -97,7 +98,7 @@ def seal_capsule(request, pk):
 @permission_classes([permissions.AllowAny])
 def unlock_capsule(request, pk):
     try:
-        capsule = Capsule.objects.get(pk=pk)
+        capsule = Capsule.objects.prefetch_related('attachments').get(pk=pk)
         
         if not capsule.is_unlocked:
             return Response(
@@ -112,7 +113,25 @@ def unlock_capsule(request, pk):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        # Check if this is the first time the capsule is being unlocked
+        first_unlock = False
+        if capsule.is_unlocked and not capsule.unlock_notifications_sent:
+            first_unlock = True
+            capsule.unlock_notifications_sent = True
+            capsule.save(update_fields=['unlock_notifications_sent'])
+        
         serializer = CapsuleDetailSerializer(capsule, context={'request': request})
+        print(f"=== DEBUG: Unlock response data ===")
+        print(f"Capsule: {capsule.title}")
+        print(f"Attachments count: {capsule.attachments.count()}")
+        print(f"First unlock: {first_unlock}")
+        print(f"Serializer data: {serializer.data}")
+        
+        # Send unlock notifications on first unlock
+        if first_unlock:
+            print(f"🎉 Sending unlock notifications for capsule: {capsule.title}")
+            send_capsule_unlocked_notifications(capsule)
+        
         return Response(serializer.data, status=status.HTTP_200_OK)
     
     except Capsule.DoesNotExist:
@@ -152,19 +171,9 @@ class CapsuleAttachmentUploadView(generics.CreateAPIView):
                 from rest_framework.exceptions import ValidationError
                 raise ValidationError("Cannot upload files to a sealed capsule")
             
-            uploaded_file = self.request.FILES.get('file')
-            print(f"Uploaded file: {uploaded_file}")
-            if uploaded_file:
-                print(f"File details: name={uploaded_file.name}, size={uploaded_file.size}, type={uploaded_file.content_type}")
-                serializer.save(
-                    capsule=capsule,
-                    file_name=uploaded_file.name,
-                    file_path=uploaded_file,
-                    file_size=uploaded_file.size,
-                    file_type=uploaded_file.content_type or 'application/octet-stream'
-                )
-            else:
-                print("No file found in request.FILES")
+            # Set capsule in serializer context
+            serializer.context['capsule'] = capsule
+            serializer.save(capsule=capsule)
         except Capsule.DoesNotExist:
             from rest_framework.exceptions import NotFound
             raise NotFound("Capsule not found")

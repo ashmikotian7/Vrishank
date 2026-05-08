@@ -11,12 +11,25 @@ class CapsuleRecipientSerializer(serializers.ModelSerializer):
 
 class CapsuleAttachmentSerializer(serializers.ModelSerializer):
     file_url = serializers.SerializerMethodField()
+    file = serializers.FileField(write_only=True)
     
     class Meta:
         model = CapsuleAttachment
-        fields = ['id', 'file_name', 'file_path', 'file_url', 'file_size', 'file_type', 'uploaded_at']
-        read_only_fields = ['id', 'file_name', 'file_size', 'file_type', 'uploaded_at']
+        fields = ['id', 'file_name', 'file_path', 'file_url', 'file_size', 'file_type', 'uploaded_at', 'file', 'capsule']
+        read_only_fields = ['id', 'file_name', 'file_size', 'file_type', 'uploaded_at', 'file_path', 'capsule']
     
+    def create(self, validated_data):
+        file = validated_data.pop('file', None)
+        
+        if file:
+            validated_data.update({
+                'file_name': file.name,
+                'file_path': file,
+                'file_size': file.size,
+                'file_type': file.content_type or 'application/octet-stream'
+            })
+        
+        return super().create(validated_data)
         
     def get_file_url(self, obj):
         request = self.context.get('request')
@@ -45,9 +58,13 @@ class CapsuleSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'creator', 'created_at', 'updated_at', 'is_unlocked']
     
     def validate_pin_lock(self, value):
-        if value and not value.isdigit():
+        # Allow null/empty values (no PIN)
+        if value is None or value == '':
+            return None
+            
+        if not value.isdigit():
             raise serializers.ValidationError("PIN must contain only digits")
-        if value and len(value) != 4:
+        if len(value) != 4:
             raise serializers.ValidationError("PIN must be exactly 4 digits")
         return value
     
@@ -66,8 +83,8 @@ class CapsuleSerializer(serializers.ModelSerializer):
                 value = timezone.make_aware(value)
         
         # Compare with current time in the same timezone
-        if value <= timezone.now():
-            raise serializers.ValidationError("Unlock date must be in the future")
+        if value < timezone.now():
+            raise serializers.ValidationError("Unlock date must be in the future or present")
         return value
     
     def create(self, validated_data):
@@ -82,10 +99,22 @@ class CapsuleSerializer(serializers.ModelSerializer):
         print(f"Message: {validated_data.get('message')}")
         print("================================")
         
+        # Set creator to current user
+        validated_data['creator'] = self.context['request'].user
+        
         capsule = Capsule.objects.create(**validated_data)
         
+        # Create recipients and send emails
         for email in recipient_emails:
-            CapsuleRecipient.objects.create(capsule=capsule, email=email)
+            recipient = CapsuleRecipient.objects.create(capsule=capsule, email=email)
+            
+            # Send notification email
+            from .utils import send_capsule_notification_email
+            success = send_capsule_notification_email(capsule, email)
+            
+            if success:
+                recipient.is_notified = True
+                recipient.save()
         
         # Create attachments
         for file in attachment_files:

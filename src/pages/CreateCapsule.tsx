@@ -72,7 +72,10 @@ const CreateCapsule = () => {
   const [description, setDescription] = useState("");
   const [message, setMessage] = useState("");
   const [date, setDate] = useState<Date>();
-  const [time, setTime] = useState("12:00");
+  const [time, setTime] = useState(() => {
+    const now = new Date();
+    return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+  });
   const [timezone, setTimezone] = useState("UTC");
     const [isPrivate, setIsPrivate] = useState(true);
   const [pinLocked, setPinLocked] = useState(false);
@@ -106,11 +109,10 @@ const CreateCapsule = () => {
   };
 
   const setTodayDate = () => {
-    // Set to tomorrow to ensure future date
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    setDate(tomorrow);
-    toast.success("Set to tomorrow's date");
+    // Set to today's date
+    const today = new Date();
+    setDate(today);
+    toast.success("Set to today's date");
   };
 
   const confirmCreate = async () => {
@@ -138,8 +140,22 @@ const CreateCapsule = () => {
       const dateTimeString = `${format(date, "yyyy-MM-dd")}T${time}:00`;
       const localDate = new Date(dateTimeString);
       
-      // Convert to ISO string but preserve the timezone information
+      // For today's date, ensure it's at least a few minutes in the future
+      const now = new Date();
+      if (date.toDateString() === now.toDateString()) {
+        // If it's today and time is in the past, add 5 minutes
+        if (localDate <= now) {
+          localDate.setMinutes(localDate.getMinutes() + 5);
+        }
+      }
+      
+      // Convert to ISO string
       const unlockDate = localDate.toISOString();
+      
+      console.log('Date selected:', date);
+      console.log('Time selected:', time);
+      console.log('Combined datetime:', localDate);
+      console.log('ISO string sent:', unlockDate);
       
       const capsuleData = {
         title,
@@ -152,8 +168,7 @@ const CreateCapsule = () => {
         recipient_emails: recipients
       };
 
-      console.log('Sending capsule data:', JSON.stringify(capsuleData, null, 2)); // Debug log
-      
+            
       // Create capsule first
       const capsule = await capsuleApi.createCapsule(capsuleData);
       
@@ -187,6 +202,7 @@ const CreateCapsule = () => {
       setConfirmOpen(true); // Reopen dialog if creation fails
     } finally {
       setIsCreating(false);
+      toast.dismiss(); // Clear the loading toast
     }
   };
 
@@ -435,7 +451,13 @@ const CreateCapsule = () => {
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0 rounded-xl backdrop-blur-xl bg-white/80 dark:bg-black/80 border-white/20" align="start">
-                          <Calendar mode="single" selected={date} onSelect={setDate} disabled={d => d < new Date()} />
+                          <Calendar mode="single" selected={date} onSelect={setDate} disabled={d => {
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0); // Set to start of day
+                            const compareDate = new Date(d);
+                            compareDate.setHours(0, 0, 0, 0); // Set to start of day
+                            return compareDate < today;
+                          }} />
                         </PopoverContent>
                       </Popover>
                       <Button
@@ -443,7 +465,7 @@ const CreateCapsule = () => {
                         size="icon"
                         onClick={setTodayDate}
                         className="h-11 w-11 rounded-xl bg-white/20 border-white/20 hover:bg-white/30"
-                        title="Set to tomorrow's date"
+                        title="Set to today's date"
                       >
                         <Sun className="w-4 h-4" />
                       </Button>
