@@ -52,26 +52,31 @@ const Dashboard = () => {
     }
   };
 
-  useEffect(() => {
-    const loadCapsules = async () => {
-      try {
-        setLoading(true);
-        const data = await capsuleApi.getCapsules();
-        setCapsules(data);
-        setError(null);
-      } catch (err) {
-        setError('Failed to load capsules');
-        console.error('Error loading capsules:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const loadCapsules = async () => {
+    try {
+      setLoading(true);
+      const data = await capsuleApi.getCapsules();
+      setCapsules(data);
+      setError(null);
+    } catch (err) {
+      setError('Failed to load capsules');
+      console.error('Error loading capsules:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     loadCapsules();
   }, []);
 
+  const refreshCapsules = async () => {
+    await loadCapsules();
+  };
+
   const filtered = capsules.filter(c => {
-    if (statusFilter !== "all" && c.status !== statusFilter) return false;
+    const status = c.is_unlocked ? 'delivered' : c.is_sealed ? 'locked' : 'scheduled';
+    if (statusFilter !== "all" && status !== statusFilter) return false;
     if (search && !c.title.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
@@ -189,13 +194,14 @@ const Dashboard = () => {
         >
           <div className="flex gap-4 min-w-max">
             {capsules.slice(0, 5).map((c) => {
-              const date = new Date(c.unlockDate);
+              const date = new Date(c.unlock_date);
+              const status = c.is_unlocked ? 'delivered' : c.is_sealed ? 'locked' : 'scheduled';
               return (
                 <div key={c.id} className="flex flex-col items-center gap-2">
                   <div className={`w-4 h-4 rounded-full ${
-                    c.status === "delivered"
+                    status === "delivered"
                       ? "bg-green-400"
-                      : c.status === "locked"
+                      : status === "locked"
                       ? "bg-gray-400"
                       : "bg-purple-400"
                   }`} />
@@ -280,13 +286,13 @@ const Dashboard = () => {
         ) : view === "grid" ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {filtered.map(c => (
-              <CapsuleCard key={c.id} capsule={c} view="grid" />
+              <CapsuleCard key={c.id} capsule={c} view="grid" onUpdate={refreshCapsules} />
             ))}
           </div>
         ) : (
           <div className="space-y-3">
             {filtered.map(c => (
-              <CapsuleCard key={c.id} capsule={c} view="list" />
+              <CapsuleCard key={c.id} capsule={c} view="list" onUpdate={refreshCapsules} />
             ))}
           </div>
         )}

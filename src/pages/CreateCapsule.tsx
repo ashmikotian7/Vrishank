@@ -19,8 +19,8 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import {
-  Upload, X, CalendarIcon, Clock, Globe, Lock, Shield, Eye, HelpCircle,
-  Image, FileText, Save, Send, ArrowLeft
+  CalendarIcon, Clock, Globe, Lock, Shield, Eye, HelpCircle,
+  Save, Send, ArrowLeft, Sun, X
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -29,8 +29,40 @@ import CountdownTimer from "@/components/CountdownTimer";
 import { capsuleApi } from "@/lib/capsuleApi";
 
 const timezones = [
-  "UTC", "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles",
-  "Europe/London", "Europe/Paris", "Asia/Tokyo", "Asia/Shanghai", "Australia/Sydney",
+  // UTC
+  "UTC",
+  
+  // North America
+  "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles",
+  "America/Toronto", "America/Vancouver", "America/Mexico_City",
+  
+  // South America
+  "America/Sao_Paulo", "America/Buenos_Aires", "America/Lima", "America/Bogota",
+  
+  // Europe
+  "Europe/London", "Europe/Paris", "Europe/Berlin", "Europe/Rome", "Europe/Madrid",
+  "Europe/Amsterdam", "Europe/Brussels", "Europe/Vienna", "Europe/Zurich",
+  "Europe/Stockholm", "Europe/Oslo", "Europe/Copenhagen", "Europe/Helsinki",
+  "Europe/Warsaw", "Europe/Prague", "Europe/Budapest", "Europe/Athens",
+  
+  // Africa
+  "Africa/Cairo", "Africa/Lagos", "Africa/Johannesburg", "Africa/Casablanca",
+  
+  // Middle East
+  "Asia/Dubai", "Asia/Riyadh", "Asia/Kuwait", "Asia/Tehran",
+  
+  // Asia (including India)
+  "Asia/Kolkata", "Asia/Mumbai", "Asia/Delhi", "Asia/Bangalore", "Asia/Chennai",
+  "Asia/Tokyo", "Asia/Shanghai", "Asia/Hong_Kong", "Asia/Singapore", "Asia/Seoul",
+  "Asia/Bangkok", "Asia/Jakarta", "Asia/Manila", "Asia/Kuala_Lumpur",
+  "Asia/Ho_Chi_Minh", "Asia/Taipei", "Asia/Beijing",
+  
+  // Oceania
+  "Australia/Sydney", "Australia/Melbourne", "Australia/Brisbane", "Australia/Perth",
+  "Australia/Adelaide", "Pacific/Auckland", "Pacific/Fiji",
+  
+  // Others
+  "Asia/Kathmandu", "Asia/Dhaka", "Asia/Colombo", "Asia/Karachi", "Asia/Kabul"
 ];
 
 
@@ -42,16 +74,13 @@ const CreateCapsule = () => {
   const [date, setDate] = useState<Date>();
   const [time, setTime] = useState("12:00");
   const [timezone, setTimezone] = useState("UTC");
-  const [files, setFiles] = useState<File[]>([]);
-const [uploadProgress, setUploadProgress] = useState<{ name: string; type: string; size: number; progress: number }[]>([]);
-  const [isPrivate, setIsPrivate] = useState(true);
+    const [isPrivate, setIsPrivate] = useState(true);
   const [pinLocked, setPinLocked] = useState(false);
   const [pinCode, setPinCode] = useState("");
   const [recipients, setRecipients] = useState<string[]>([]);
   const [recipientInput, setRecipientInput] = useState("");
   const [autoSaved, setAutoSaved] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [dragOver, setDragOver] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
 
   // Auto-save simulation
@@ -67,37 +96,21 @@ const [uploadProgress, setUploadProgress] = useState<{ name: string; type: strin
     }
   };
 
-  const simulateUpload = (file: File) => {
-    const progressItem = { name: file.name, type: file.type, size: file.size, progress: 0 };
-    setUploadProgress(prev => [...prev, progressItem]);
-    setFiles(prev => [...prev, file]);
-    
-    const interval = setInterval(() => {
-      setUploadProgress(prev => prev.map(p =>
-        p.name === file.name ? { ...p, progress: Math.min(p.progress + 20, 100) } : p
-      ));
-    }, 300);
-    setTimeout(() => clearInterval(interval), 1800);
-  };
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOver(false);
-    const items = Array.from(e.dataTransfer.files);
-    items.forEach(f => simulateUpload(f));
-  }, []);
-
-  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const items = Array.from(e.target.files || []);
-    items.forEach(f => simulateUpload(f));
-  };
-
+  
   const handleSubmit = () => {
     if (!title || !date) {
       toast.error("Please fill in the title and select a date");
       return;
     }
     setConfirmOpen(true);
+  };
+
+  const setTodayDate = () => {
+    // Set to tomorrow to ensure future date
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    setDate(tomorrow);
+    toast.success("Set to tomorrow's date");
   };
 
   const confirmCreate = async () => {
@@ -121,7 +134,12 @@ const [uploadProgress, setUploadProgress] = useState<{ name: string; type: strin
       setConfirmOpen(false);
       toast.loading("Creating capsule...");
 
-      const unlockDate = new Date(`${format(date, "yyyy-MM-dd")}T${time}:00Z`).toISOString();
+      // Create proper datetime considering timezone
+      const dateTimeString = `${format(date, "yyyy-MM-dd")}T${time}:00`;
+      const localDate = new Date(dateTimeString);
+      
+      // Convert to ISO string but preserve the timezone information
+      const unlockDate = localDate.toISOString();
       
       const capsuleData = {
         title,
@@ -134,29 +152,45 @@ const [uploadProgress, setUploadProgress] = useState<{ name: string; type: strin
         recipient_emails: recipients
       };
 
+      console.log('Sending capsule data:', JSON.stringify(capsuleData, null, 2)); // Debug log
+      
       // Create capsule first
       const capsule = await capsuleApi.createCapsule(capsuleData);
       
-      // Then upload files if any
-      if (files.length > 0) {
-        toast.loading("Uploading files...");
-        for (const file of files) {
-          await capsuleApi.uploadAttachment(capsule.id, file);
-        }
-      }
-      
       toast.success("Capsule created successfully! ✨");
-      navigate("/dashboard");
+      navigate(`/upload-attachments/${capsule.id}`);
     } catch (error) {
       console.error("Error creating capsule:", error);
-      toast.error("Failed to create capsule. Please try again.");
+      
+      // More detailed error logging
+      if (error instanceof Error) {
+        console.error("Error message:", error.message);
+        console.error("Error stack:", error.stack);
+      }
+      
+      // Handle specific API errors
+      if (error && typeof error === 'object' && 'status' in error) {
+        const apiError = error as any;
+        if (apiError.status === 400) {
+          toast.error("Invalid data. Please check your inputs.");
+        } else if (apiError.status === 401) {
+          toast.error("Authentication expired. Please login again.");
+        } else if (apiError.status === 413) {
+          toast.error("File too large. Please use smaller files.");
+        } else {
+          toast.error(apiError.data?.detail || "Failed to create capsule. Please try again.");
+        }
+      } else {
+        toast.error("Failed to create capsule. Please try again.");
+      }
+      
       setConfirmOpen(true); // Reopen dialog if creation fails
     } finally {
       setIsCreating(false);
     }
   };
 
-  const unlockDate = date ? new Date(`${format(date, "yyyy-MM-dd")}T${time}:00Z`).toISOString() : null;
+  const unlockDate = date ? new Date(`${format(date, "yyyy-MM-dd")}T${time}:00`).toISOString() : null;
 
   return (
     <div className="min-h-screen relative overflow-hidden">
@@ -274,64 +308,7 @@ const [uploadProgress, setUploadProgress] = useState<{ name: string; type: strin
               </div>
             </motion.div>
 
-            {/* File Upload */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15 }}
-            >
-              <div className="p-[1px] rounded-2xl bg-gradient-to-r from-purple-400/30 via-pink-400/30 to-blue-400/30">
-                <div className="relative rounded-2xl p-6 space-y-4
-                  bg-white/30 dark:bg-white/5
-                  backdrop-blur-2xl
-                  border border-white/30 dark:border-white/10
-                  shadow-lg hover:shadow-xl transition-all duration-500">
-                  <Label className="text-gray-800 dark:text-gray-200">Attachments</Label>
-                  <div
-                    className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
-                      dragOver
-                        ? "border-purple-400 bg-purple-500/10"
-                        : "border-white/30 hover:border-purple-400/50"
-                    }`}
-                    onDragOver={e => { e.preventDefault(); setDragOver(true); }}
-                    onDragLeave={() => setDragOver(false)}
-                    onDrop={handleDrop}
-                  >
-                    <Upload className="w-8 h-8 text-gray-500 dark:text-gray-400 mx-auto mb-3" />
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Drag & drop files here, or</p>
-                    <label>
-                      <Button variant="outline" size="sm" className="rounded-xl bg-white/20 border-white/20 hover:bg-white/30" asChild>
-                        <span>Browse Files</span>
-                      </Button>
-                      <input type="file" multiple className="hidden" onChange={handleFileInput} />
-                    </label>
-                  </div>
-                  {uploadProgress.length > 0 && (
-                    <div className="space-y-2">
-                      {uploadProgress.map(f => (
-                        <div key={f.name} className="flex items-center gap-3 p-3 rounded-xl bg-white/20 border border-white/20">
-                          {f.type.startsWith("image") ? <Image className="w-5 h-5 text-purple-500" /> : <FileText className="w-5 h-5 text-purple-500" />}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm truncate text-gray-800 dark:text-gray-200">{f.name}</p>
-                            <div className="h-1.5 bg-white/30 rounded-full mt-1 overflow-hidden">
-                              <div className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all duration-300" style={{ width: `${f.progress}%` }} />
-                            </div>
-                          </div>
-                          <span className="text-xs text-gray-500">{f.progress}%</span>
-                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => {
-                            setUploadProgress(prev => prev.filter(x => x.name !== f.name));
-                            setFiles(prev => prev.filter(x => x.name !== f.name));
-                          }}>
-                            <X className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-
+            
             {/* Privacy & Security */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -449,17 +426,28 @@ const [uploadProgress, setUploadProgress] = useState<{ name: string; type: strin
 
                   <div className="space-y-2">
                     <Label className="text-gray-800 dark:text-gray-200">Unlock Date</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" className="w-full justify-start h-11 rounded-xl gap-2 bg-white/20 border-white/20 hover:bg-white/30 text-gray-700 dark:text-gray-300">
-                          <CalendarIcon className="w-4 h-4" />
-                          {date ? format(date, "PPP") : "Select a date"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0 rounded-xl backdrop-blur-xl bg-white/80 dark:bg-black/80 border-white/20" align="start">
-                        <Calendar mode="single" selected={date} onSelect={setDate} disabled={d => d < new Date()} />
-                      </PopoverContent>
-                    </Popover>
+                    <div className="flex gap-2">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className="flex-1 justify-start h-11 rounded-xl gap-2 bg-white/20 border-white/20 hover:bg-white/30 text-gray-700 dark:text-gray-300">
+                            <CalendarIcon className="w-4 h-4" />
+                            {date ? format(date, "PPP") : "Select a date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0 rounded-xl backdrop-blur-xl bg-white/80 dark:bg-black/80 border-white/20" align="start">
+                          <Calendar mode="single" selected={date} onSelect={setDate} disabled={d => d < new Date()} />
+                        </PopoverContent>
+                      </Popover>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={setTodayDate}
+                        className="h-11 w-11 rounded-xl bg-white/20 border-white/20 hover:bg-white/30"
+                        title="Set to tomorrow's date"
+                      >
+                        <Sun className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
@@ -503,8 +491,6 @@ const [uploadProgress, setUploadProgress] = useState<{ name: string; type: strin
                     </div>
                     {message && <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3">{message}</p>}
                     <div className="flex gap-2 text-xs text-gray-500">
-                      <span>{files.length} files</span>
-                      <span>•</span>
                       <span>{recipients.length} recipients</span>
                       <span>•</span>
                       <span>{isPrivate ? "Private" : "Public"}</span>

@@ -1,8 +1,9 @@
 from rest_framework import status, permissions, generics
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.utils import timezone
+from datetime import timedelta
 from django.db.models import Q
 from .models import Capsule, CapsuleRecipient, CapsuleAttachment
 from .serializers import (
@@ -13,7 +14,7 @@ from .serializers import (
 class CapsuleListCreateView(generics.ListCreateAPIView):
     serializer_class = CapsuleSerializer
     permission_classes = [permissions.IsAuthenticated]
-    parser_classes = [MultiPartParser, FormParser]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
     
     def get_queryset(self):
         user = self.request.user
@@ -50,6 +51,15 @@ class CapsuleDetailView(generics.RetrieveUpdateDestroyAPIView):
                 {'error': 'Cannot update a sealed capsule'}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
+        
+        # Check if capsule is within 1 hour of creation
+        time_since_creation = timezone.now() - capsule.created_at
+        if time_since_creation > timedelta(hours=1):
+            return Response(
+                {'error': 'Cannot edit capsule after 1 hour of creation'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
         return super().update(request, *args, **kwargs)
     
     def destroy(self, request, *args, **kwargs):
@@ -133,6 +143,9 @@ class CapsuleAttachmentUploadView(generics.CreateAPIView):
     
     def perform_create(self, serializer):
         capsule_id = self.kwargs.get('capsule_pk')
+        print(f"=== DEBUG: Upload attempt for capsule {capsule_id} ===")
+        print(f"Request FILES: {self.request.FILES}")
+        print(f"Request data: {self.request.data}")
         try:
             capsule = Capsule.objects.get(pk=capsule_id, creator=self.request.user)
             if capsule.is_sealed:
@@ -140,16 +153,24 @@ class CapsuleAttachmentUploadView(generics.CreateAPIView):
                 raise ValidationError("Cannot upload files to a sealed capsule")
             
             uploaded_file = self.request.FILES.get('file')
+            print(f"Uploaded file: {uploaded_file}")
             if uploaded_file:
+                print(f"File details: name={uploaded_file.name}, size={uploaded_file.size}, type={uploaded_file.content_type}")
                 serializer.save(
                     capsule=capsule,
                     file_name=uploaded_file.name,
+                    file_path=uploaded_file,
                     file_size=uploaded_file.size,
                     file_type=uploaded_file.content_type or 'application/octet-stream'
                 )
+            else:
+                print("No file found in request.FILES")
         except Capsule.DoesNotExist:
             from rest_framework.exceptions import NotFound
             raise NotFound("Capsule not found")
+        except Exception as e:
+            print(f"Upload error: {e}")
+            raise
 
 @api_view(['DELETE'])
 @permission_classes([permissions.IsAuthenticated])

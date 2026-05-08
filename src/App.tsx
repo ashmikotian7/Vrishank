@@ -15,6 +15,8 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import CreateCapsule from "./pages/CreateCapsule";
+import UploadAttachments from "./pages/UploadAttachments";
+import CapsuleView from "./pages/CapsuleView";
 import OpenCapsule from "./pages/OpenCapsule";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
@@ -42,6 +44,8 @@ const App = () => {
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/create" element={<CreateCapsule />} />
+                <Route path="/upload-attachments/:capsuleId" element={<UploadAttachments />} />
+                <Route path="/capsule/:id" element={<CapsuleView />} />
                 <Route path="/open/:id" element={<OpenCapsule />} />
                 <Route path="/about" element={<><Navbar /><About /></>} />
                 <Route path="/contact" element={<><Navbar /><Contact /></>} />
