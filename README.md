@@ -224,9 +224,64 @@ EMAIL_HOST_PASSWORD=your-app-password
 - `GET /api/capsules/` - List user capsules
 - `POST /api/capsules/` - Create new capsule
 - `GET /api/capsules/{id}/` - Get capsule details
-- `PUT /api/capsules/{id}/` - Update capsule
-- `DELETE /api/capsules/{id}/` - Delete capsule
+- `PUT /api/capsules/{id}/` - **Update/Edit capsule**
+- `PATCH /api/capsules/{id}/` - **Partial update capsule**
+- `DELETE /api/capsules/{id}/` - **Delete capsule permanently**
 - `POST /api/capsules/{id}/unlock/` - Unlock capsule
+- `POST /api/capsules/{id}/seal/` - Seal capsule (make it immutable)
+- `POST /api/capsules/{id}/attachments/` - Add file attachments
+
+### Capsule Edit Operations
+
+**Update Capsule (PUT):**
+```bash
+PUT /api/capsules/{id}/
+Content-Type: application/json
+Authorization: Bearer {access_token}
+
+{
+  "title": "Updated Title",
+  "description": "Updated description",
+  "message": "Updated message content",
+  "unlock_date": "2026-12-31T23:59:59Z",
+  "is_private": false,
+  "pin_lock": "1234"
+}
+```
+
+**Partial Update (PATCH):**
+```bash
+PATCH /api/capsules/{id}/
+Content-Type: application/json
+Authorization: Bearer {access_token}
+
+{
+  "title": "Just update the title"
+}
+```
+
+### Capsule Delete Operations
+
+**Delete Capsule:**
+```bash
+DELETE /api/capsules/{id}/
+Authorization: Bearer {access_token}
+```
+
+**Response:**
+```json
+{
+  "message": "Capsule deleted successfully",
+  "id": 123
+}
+```
+
+### Attachment Endpoints
+
+- `GET /api/capsules/{id}/attachments/` - List capsule attachments
+- `POST /api/capsules/{id}/attachments/` - Upload new attachment
+- `DELETE /api/attachments/{id}/` - Delete specific attachment
+- `GET /api/attachments/{id}/download/` - Download attachment file
 
 
 
